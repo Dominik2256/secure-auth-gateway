@@ -63,7 +63,7 @@
         .led {
             width: 40px; height: 40px; border-radius: 50%; background-color: #222; 
             margin-right: 20px; box-shadow: inset 0 0 10px #000;
-            transition: background-color 0.2s, box-shadow 0.2s;
+            transition: background-color 0.1s, box-shadow 0.1s; /* Szybsza reakcja na ON/OFF */
         }
         .led-label { font-size: 16px; font-weight: bold; color: #aaa; text-transform: uppercase; }
 
@@ -72,8 +72,8 @@
         .led.red-flash { animation: redFlash 0.5s linear 2; } 
         @keyframes redFlash { 0%, 100% { background-color: #222; box-shadow: none; } 50% { background-color: #ff0000; box-shadow: 0 0 30px #ff0000; } }
 
-        .led.morse-blink { animation: morseBlink 0.1s linear; }
-        @keyframes morseBlink { 0%, 100% { background-color: #222; box-shadow: none; } 10%, 90% { background-color: #ffaa00; box-shadow: 0 0 20px #ffaa00; } }
+        /* Miganie sterowane przez JS, nie przez CSS animation dla precyzji */
+        .led.active-blink { background-color: #ffaa00; box-shadow: 0 0 20px #ffaa00; }
 
         #editor-overlay {
             display: none; position: absolute; top: 20px; left: 20px; right: 20px; bottom: 20px;
@@ -163,38 +163,45 @@
         let isEditing = false;
         let ledMorseEnabled = false; 
 
-        // HASŁO MORSE - Bilard
+        // HASŁO MORSE - Bilard (HEX: 42 69 6C 61 72 64)
         const morseSequence = "....- ..---   -.... ----.   -.... -.-.   -.... .----   --... ..---   -.... ....-";
 
-        // ROZBUDOWANY VIRTUAL FILE SYSTEM (VFS)
+        // DOMYŚLNE CZASY MORSE'A (Konfigurowalne w sys.conf)
+        let timings = {
+            dot: 400,
+            dash: 800,
+            gap: 400, // Odstęp między elementami znaku
+            letterGap: 1200,
+            wordGap: 2800 // 7 * dot (standard)
+        };
+
         const virtualFS = {
             "name": "~",
             "type": "dir",
             "files": {
-                "readme.txt": { type: "file", content: "Adrian, wentylator serwera zagłusza sygnał audio (30% vol). Sprawdź diagnostykę wizualną w 'sys.conf'." },
-                "sys.conf": { type: "file", content: "ENABLE_LED_VISUAL=0" },
+                "readme.txt": { type: "file", content: "Adrian, wentylator serwera zagłusza sygnał audio (30% vol). Sprawdź diagnostykę wizualną w 'sys.conf'. Zweryfikuj parametry czasowe." },
+                "sys.conf": { type: "file", content: "ENABLE_LED_VISUAL=0\nMORSE_DOT_MS=400\nMORSE_DASH_MS=800\nMORSE_LETTER_GAP_MS=1200" },
                 "system_logs": { type: "dir", locked: false, pass: null, files: {
-                    "boot.log": { type: "file", content: "[OK] Kernel loaded\n[WARN] Audio subsystem unstable\n[OK] VFS mounted" },
-                    "auth.log": { type: "file", content: "Failed login attempts: 42\nLast connection: SSH (Port 22)" }
-                }},
-                "cache": { type: "dir", locked: false, pass: null, files: {
-                    "dump.bin": { type: "file", content: "01001000 01000001 01000011 01001011 01000101 01010010" }
+                    "boot.log": { type: "file", content: "[OK] Kernel loaded\n[WARN] Audio subsystem unstable\n[OK] VFS mounted" }
                 }},
                 "stg_1": { type: "dir", locked: true, pass: "bilard", files: {
-                    "hint_1.txt": { type: "file", content: "Dobra robota. Jesteś w Stage 1." }
+                    "hint_1.txt": { type: "file", content: "Stage 1 skompletowany. Kolejne hasło ukryte w systemie binarnym. Szukaj w katalogu 'cache'." }
                 }},
-                "stg_2": { type: "dir", locked: true, pass: "haslo2", files: {
-                    "hint_2.txt": { type: "file", content: "Dobra robota. Jesteś w Stage 2." }
+                "cache": { type: "dir", locked: false, pass: null, files: {
+                    "stg2_key.bin": { type: "file", content: "01010000 01000001 01010010 01010100 01011001" } // PARTI
                 }},
-                "stg_3": { type: "dir", locked: true, pass: "haslo3", files: {
-                    "final.txt": { type: "file", content: "Ostatnia prosta..." }
+                "stg_2": { type: "dir", locked: true, pass: "party", files: {
+                    "hint_2.txt": { type: "file", content: "Dobra robota. Jesteś w Stage 2. Hasło do Stage 3 to Hex: 46 49 4E 41 4C" } // FINAL
+                }},
+                "stg_3": { type: "dir", locked: true, pass: "final", files: {
+                    "final_wishes.txt": { type: "file", content: "GRATULACJE ADRIAN!\nUdało Ci się przejść wszystkie etapy.\nTo koniec demo. Prezent czeka w Skrypcie Python." }
                 }}
             }
         };
 
         let currentDirObj = virtualFS;
         let currentPath = "~";
-        let passwordPromptTarget = null; // Zmienna przechowująca folder, do którego próbujemy wejść
+        let passwordPromptTarget = null;
 
         // --- AUDIO ---
         async function initAudio() {
@@ -255,38 +262,48 @@
         }
 
         let morseTimeout;
-        const timeUnit = 150; 
+        let isOutputtingMorse = false;
+
         function startMorseLedBlink() {
-            if (currentStage !== 1 || !ledMorseEnabled) return;
+            if (currentStage !== 1 || !ledMorseEnabled || isOutputtingMorse) return;
+            
             clearTimeout(morseTimeout);
-            stopMorseLedEffect(); 
+            isOutputtingMorse = true;
             let currentIndex = 0;
 
             function processNext() {
                 if (currentIndex >= morseSequence.length || currentStage !== 1 || !ledMorseEnabled) {
-                    if (currentStage == 1 && ledMorseEnabled) morseTimeout = setTimeout(startMorseLedBlink, 7 * timeUnit); 
+                    isOutputtingMorse = false;
+                    if (currentStage == 1 && ledMorseEnabled) morseTimeout = setTimeout(startMorseLedBlink, timings.wordGap); 
                     return;
                 }
                 const char = morseSequence[currentIndex];
                 currentIndex++;
 
                 if (char === ".") {
-                    triggerLedPulse(1 * timeUnit); morseTimeout = setTimeout(processNext, 2 * timeUnit); 
+                    triggerLedPulse(timings.dot); 
+                    morseTimeout = setTimeout(processNext, timings.dot + timings.gap); 
                 } else if (char === "-") {
-                    triggerLedPulse(3 * timeUnit); morseTimeout = setTimeout(processNext, 4 * timeUnit);
+                    triggerLedPulse(timings.dash); 
+                    morseTimeout = setTimeout(processNext, timings.dash + timings.gap);
                 } else if (char === " ") {
-                    morseTimeout = setTimeout(processNext, 2 * timeUnit);
+                    // Przerwa między literami. timings.gap już dodany w poprz. kroku, dodajemy resztę.
+                    morseTimeout = setTimeout(processNext, timings.letterGap - timings.gap);
                 }
             }
             processNext();
         }
 
         function triggerLedPulse(duration) {
-            leds[1].style.animation = `morseBlink ${duration}ms linear`;
-            setTimeout(() => { leds[1].style.animation = ''; }, duration);
+            leds[1].classList.add('active-blink');
+            setTimeout(() => { leds[1].classList.remove('active-blink'); }, duration);
         }
 
-        function stopMorseLedEffect() { if (leds[1]) leds[1].style.animation = ''; }
+        function stopMorseLedEffect() { 
+            clearTimeout(morseTimeout);
+            isOutputtingMorse = false;
+            if (leds[1]) leds[1].classList.remove('active-blink'); 
+        }
 
         // --- TERMINAL ---
         function updateCmdDisplay() {
@@ -309,7 +326,7 @@
             setTimeout(() => {
                 const p = document.createElement('p');
                 p.style.color = color;
-                p.innerHTML = text; // Ważne: HTML zamiast Text, by czytało &nbsp; i kolory
+                p.innerHTML = text;
                 logsDiv.appendChild(p);
                 logsContainer.scrollTop = logsContainer.scrollHeight;
             }, delay);
@@ -336,7 +353,7 @@
                     printLog("ls      - listowanie plików i katalogów");
                     printLog("cd      - zmiana katalogu (np. cd stg_1)");
                     printLog("cat     - odczyt zawartości pliku (np. cat readme.txt)");
-                    printLog("edit    - edycja pliku konfiguracyjnego");
+                    printLog("edit     - edycja pliku konfiguracyjnego");
                     printLog("clear   - czyszczenie ekranu");
                     break;
                 case 'ls':
@@ -395,7 +412,7 @@
             }
         }
 
-        // --- EDYTOR ---
+        // --- EDYTOR Z PARSOWANIEM CONFIGA ---
         function openEditor(filename) {
             isEditing = true; editorOverlay.style.display = 'flex';
             editorTextarea.value = currentDirObj.files[filename].content;
@@ -408,17 +425,49 @@
         }
 
         function saveFile() {
-            currentDirObj.files["sys.conf"].content = editorTextarea.value;
+            let content = editorTextarea.value;
+            currentDirObj.files["sys.conf"].content = content;
             editorStatus.innerText = "[ZAPISANO]";
             
-            if (editorTextarea.value.includes("ENABLE_LED_VISUAL=1")) {
-                if (!ledMorseEnabled) {
-                    ledMorseEnabled = true;
-                    if (currentStage == 1) { printLog("sys.conf: Diagnostyka wizualna LED włączona.", "#ff0", 100); updateLeds(); }
+            // PARSOWANIE KONFIGURACJI
+            try {
+                // 1. Włączenie/Wyłączenie diody
+                if (content.includes("ENABLE_LED_VISUAL=1")) {
+                    if (!ledMorseEnabled) {
+                        ledMorseEnabled = true;
+                        if (currentStage == 1) { printLog("sys.conf: Diagnostyka wizualna LED włączona.", "#ff0", 100); updateLeds(); }
+                    }
+                } else {
+                    if (ledMorseEnabled) { ledMorseEnabled = false; printLog("sys.conf: Diagnostyka LED wyłączona.", "#aaa", 100); stopMorseLedEffect(); updateLeds(); }
                 }
-            } else {
-                if (ledMorseEnabled) { ledMorseEnabled = false; printLog("sys.conf: Diagnostyka LED wyłączona.", "#aaa", 100); stopMorseLedEffect(); updateLeds(); }
+
+                // 2. Parsowanie Czasów (Regex)
+                const dotMatch = content.match(/MORSE_DOT_MS=(\d+)/);
+                const dashMatch = content.match(/MORSE_DASH_MS=(\d+)/);
+                const letterGapMatch = content.match(/MORSE_LETTER_GAP_MS=(\d+)/);
+
+                let changed = false;
+                if (dotMatch && timings.dot !== parseInt(dotMatch[1])) { timings.dot = parseInt(dotMatch[1]); changed = true; }
+                if (dashMatch && timings.dash !== parseInt(dashMatch[1])) { timings.dash = parseInt(dashMatch[1]); changed = true; }
+                if (letterGapMatch && timings.letterGap !== parseInt(letterGapMatch[1])) { timings.letterGap = parseInt(letterGapMatch[1]); changed = true; }
+
+                if (changed) {
+                    // Aktualizacja zależnych czasów
+                    timings.gap = timings.dot; // Standard: przerwa między elem = 1 kropka
+                    timings.wordGap = timings.dot * 7;
+                    printLog(`sys.conf: Parametry czasowe Morse'a zaktualizowane. (Dot: ${timings.dot}ms, Dash: ${timings.dash}ms)`, "#ff0", 200);
+                    
+                    // Jeśli dioda miga, zrestartuj ją z nowymi czasami
+                    if (ledMorseEnabled && currentStage === 1) {
+                        stopMorseLedEffect();
+                        setTimeout(startMorseLedBlink, 500);
+                    }
+                }
+
+            } catch (e) {
+                console.error("Błąd parsowania sys.conf");
             }
+
             setTimeout(() => { editorStatus.innerText = ""; }, 1500);
         }
 
@@ -433,7 +482,7 @@
 
             if (e.key === 'Tab') {
                 e.preventDefault();
-                if (passwordPromptTarget) return; // Wyłącz TAB podczas wpisywania hasła
+                if (passwordPromptTarget) return; 
 
                 const currentVal = this.value;
                 const parts = currentVal.trimLeft().split(/\s+/);
@@ -458,21 +507,20 @@
 
             if (e.key === 'Enter') {
                 if (passwordPromptTarget) {
-                    // Sprawdzanie hasła do folderu
                     printLog(promptStr.innerText + "*".repeat(this.value.length), "#ffaa00");
                     if (this.value.toLowerCase() === passwordPromptTarget.obj.pass) {
                         printLog("[+] AUTORYZACJA POPRAWNA. ODCZYT KATALOGU...", "#0f0");
-                        passwordPromptTarget.obj.locked = false; // Trwałe odblokowanie
+                        passwordPromptTarget.obj.locked = false; 
                         currentDirObj = passwordPromptTarget.obj;
                         currentPath = currentPath === "~" ? "~/" + passwordPromptTarget.name : currentPath + "/" + passwordPromptTarget.name;
                         
                         // Zmiana Stage po wejściu do folderu
                         if (passwordPromptTarget.name === "stg_1" && currentStage === 1) {
                             currentStage = 2; stopMorseLedEffect(); updateLeds();
-                            setTimeout(() => printLog("Odkryto pliki Stage 1. Szukaj wskazówek.", "#0f0"), 500);
+                            printLog("Uruchamianie modułu: Kodowanie (Szyfr Binarny)...", "#0f0", 500);
                         } else if (passwordPromptTarget.name === "stg_2" && currentStage === 2) {
                             currentStage = 3; updateLeds();
-                            setTimeout(() => printLog("Odkryto pliki Stage 2. Szukaj wskazówek.", "#0f0"), 500);
+                            printLog("Uruchamianie modułu: Kryptografia (Hex)...", "#0f0", 500);
                         }
                     } else {
                         printLog("[-] ACCESS DENIED. NIEPRAWIDŁOWE HASŁO.", "#f00");
