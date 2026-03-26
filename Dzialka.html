@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>DECRYPTING_PACKET_ST_02</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { border: 1px solid #0f0; padding: 30px; text-align: center; box-shadow: 0 0 20px #0f0; }
+        .loading { font-size: 20px; letter-spacing: 5px; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>DECRYPTING...</h2>
+        <p class="loading">|||||||||||||||||||||| 82%</p>
+        <p style="color: #555;">Warning: Connection unstable. Manual intercept required.</p>
+        <p id="status">> Monitoring network traffic...</p>
+    </div>
+
+    <script>
+        fetch('packet.json', {
+            headers: {
+                'X-Secret-Key': 'Naglowek_2026',
+                'X-Origin-Auth': 'U2VrcmV0X0FkcmlhbmE='
+            }
+        })
+        .then(response => console.log("%c[SYSTEM]", "color: #0f0; font-weight: bold;", "Pakiet packet.json przechwycony. Zbadaj odpowiedź (Response), aby wyciągnąć payload."))
+        .catch(err => {});
+
+        console.log("Status: 82% deszyfrowania. Brakujące pakiety są widoczne w zakładce Network.");
+    </script>
+</body>
+</html>
