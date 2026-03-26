@@ -93,7 +93,8 @@
             <div id="input_line">
                 <div id="status_output"></div>
                 <div class="terminal-prompt-mockup">
-                    <span class="mockup-prompt-char">adrian@sys-node:~#</span>
+                    <!-- Dodane ID 'bottomPrompt', żeby móc je aktualizować -->
+                    <span class="mockup-prompt-char" id="bottomPrompt">adrian@sys-node:~#</span>
                     <span class="mockup-brackets">[
                         <span class="real-command-display" id="realCmdDisplay"></span>
                         <span class="block-cursor"></span>
@@ -118,16 +119,16 @@
         const inputLine = document.getElementById('input_line');
         const cmdInput = document.getElementById('cmdInput');
         const realCmdDisplay = document.getElementById('realCmdDisplay');
+        const bottomPrompt = document.getElementById('bottomPrompt');
 
         const knownCommands = ['ls', 'cd', 'cat', 'pwd', 'help', 'clear', 'unlock'];
 
         const introLogs = [
             "Inicjalizacja modułów interaktywnych...",
             "Ładowanie VFS (Virtual File System)... [OK]",
-            "Szyfrowanie sesji... [OK]",
             " ",
             "========================================",
-            "==    WITAJ ADRIAN W SYSTEMIE V2.1    ==",
+            "==    WITAJ ADRIAN W SYSTEMIE V2.2    ==",
             "========================================",
             "Dostęp przyznany. Terminal gotowy.",
             "Wpisz 'help', aby wyświetlić listę poleceń.",
@@ -158,6 +159,11 @@
         
         let currentPath = "~";
         let currentDirObj = virtualFS;
+
+        // Funkcja aktualizująca tekst zachęty na dole
+        function updateBottomPrompt() {
+            bottomPrompt.innerText = `adrian@sys-node:${currentPath}#`;
+        }
 
         function updateCmdDisplay() {
             realCmdDisplay.innerHTML = cmdInput.value.replace(/ /g, '&nbsp;');
@@ -200,7 +206,6 @@
                     } else if (dest === "..") {
                         currentDirObj = virtualFS; currentPath = "~"; 
                     } else {
-                        // Obsługa cd z ukośnikiem na końcu (od Tabulatora)
                         if (dest.endsWith('/')) dest = dest.slice(0, -1);
                         if (currentDirObj.files[dest] && currentDirObj.files[dest].type === 'dir') {
                             currentDirObj = currentDirObj.files[dest];
@@ -209,6 +214,7 @@
                             output += "<p class='error-msg'>ACCESS DENIED: Higher Permission Level Required</p>";
                         }
                     }
+                    updateBottomPrompt(); // AKTUALIZACJA NA DOLE PO CD
                     break;
                 case 'cat':
                     let file = args[1];
@@ -238,21 +244,18 @@
             logsContainer.scrollTop = logsContainer.scrollHeight;
         }
 
-        // --- ZAAWANSOWANA LOGIKA TABULATORA ---
         cmdInput.addEventListener('keydown', function(e) {
             if (e.key === 'Tab') {
                 e.preventDefault();
                 const currentVal = this.value.trim();
                 const parts = currentVal.split(/\s+/);
 
-                // Autouzupełnianie komendy (pierwsze słowo)
                 if (parts.length === 1 && currentVal.length > 0) {
                     const matches = knownCommands.filter(c => c.startsWith(currentVal.toLowerCase()));
                     if (matches.length === 1) {
                         this.value = matches[0] + " ";
                     }
                 } 
-                // Autouzupełnianie pliku/folderu (drugie słowo)
                 else if (parts.length === 2) {
                     const cmd = parts[0];
                     const prefix = parts[1];
@@ -288,6 +291,7 @@
             } else {
                 inputLine.style.display = "block";
                 cmdInput.focus();
+                // Dodajemy prompt do historii na koniec intro
                 logsDiv.innerHTML += "<p class='mockup-prompt-char'>adrian@sys-node:" + currentPath + "# </p>";
                 logsContainer.scrollTop = logsContainer.scrollHeight;
             }
