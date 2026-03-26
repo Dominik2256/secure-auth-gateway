@@ -6,7 +6,7 @@
     <style>
         body { 
             background-color: #050505; 
-            color: #ff0000; /* Zmiana na czerwony alertowy */
+            color: #ff0000; 
             font-family: 'Courier New', monospace; 
             margin: 0; 
             height: 100vh;
@@ -22,7 +22,7 @@
             box-shadow: 0 0 15px #ff0000, inset 0 0 10px #ff0000; 
             padding: 20px;
             box-sizing: border-box;
-            background-color: #220000; /* Lekko czerwonawe tło */
+            background-color: #1a0000; 
         }
         #terminal-content {
             height: 100%;
@@ -69,15 +69,11 @@
             "==================================================",
             "INVALID PASSPHRASE DETECTED.",
             "ACCESS DENIED.",
-            "Triggering active defense mechanisms...",
-            "Logging IP address...",
-            "IP LOGGED.",
-            "Logging MAC address...",
-            "MAC LOGGED.",
-            "Isolating connection...",
-            "Connection terminated by remote host.",
+            "Unauthorized entry attempt logged.",
+            "Tracking source...",
+            "Source isolated. Terminating session.",
             " ",
-            "System will forcefully reboot connection in..."
+            "System will forcefully reboot in..."
         ];
 
         let logIndex = 0;
@@ -90,7 +86,7 @@
                 logsContainer.scrollTop = logsContainer.scrollHeight;
                 
                 logIndex++;
-                const speed = Math.floor(Math.random() * 80) + 40; 
+                const speed = Math.floor(Math.random() * 60) + 30; 
                 setTimeout(printNextLog, speed);
             } else {
                 startCountdown(5);
@@ -109,8 +105,10 @@
 
                 if (seconds < 0) {
                     clearInterval(interval);
-                    // Automatyczny powrót do strony głównej (katalogu głównego repozytorium)
-                    window.location.href = "/"; 
+                    
+                    const pathArray = window.location.pathname.split('/');
+                    const repoName = pathArray[1]; 
+                    window.location.href = window.location.origin + '/' + repoName + '/';
                 }
             }, 1000);
         }
