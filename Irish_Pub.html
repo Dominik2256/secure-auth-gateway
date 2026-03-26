@@ -93,7 +93,6 @@
             <div id="input_line">
                 <div id="status_output"></div>
                 <div class="terminal-prompt-mockup">
-                    <!-- Dodane ID 'bottomPrompt', żeby móc je aktualizować -->
                     <span class="mockup-prompt-char" id="bottomPrompt">adrian@sys-node:~#</span>
                     <span class="mockup-brackets">[
                         <span class="real-command-display" id="realCmdDisplay"></span>
@@ -126,13 +125,14 @@
         const introLogs = [
             "Inicjalizacja modułów interaktywnych...",
             "Ładowanie VFS (Virtual File System)... [OK]",
+            "Szyfrowanie sesji... [OK]",
             " ",
             "========================================",
-            "==    WITAJ ADRIAN W SYSTEMIE V2.2    ==",
+            "==    WITAJ ADRIAN W SYSTEMIE V2.4    ==",
             "========================================",
             "Dostęp przyznany. Terminal gotowy.",
             "Wpisz 'help', aby wyświetlić listę poleceń.",
-            "Podpowiedź: Użyj [TAB], aby uzupełnić komendy lub nazwy plików.",
+            "Podpowiedź: Przeszukaj logi. Origin ID (Data Urodzenia) jest kluczem.",
             " "
         ];
 
@@ -140,12 +140,26 @@
             "name": "~",
             "type": "dir",
             "files": {
-                "readme.txt": "Adrian, poziom zabezpieczeń został podniesiony. Szukaj w głębi systemu.",
+                "readme.txt": "Adrian, poziom zabezpieczeń został podniesiony. System wygenerował wiele fałszywych zrzutów pamięci powiązanych z Twoim kręgiem zaufania. Tylko jeden to klucz.",
                 "logs": {
                     "name": "logs",
                     "type": "dir",
                     "files": {
-                        "security.log": "TIMESTAMP | EVENT: KEY_GEN | DATA: RHppYWxrYQ==",
+                        "security.log": 
+                            "2023-11-12 08:30:12 | AUTH_SESSION_DATA: QW5pYQ==\n" +     
+                            "2024-01-05 15:20:44 | AUTH_SESSION_DATA: TWFuZHp1cg==\n" +  
+                            "2021-06-18 22:10:05 | AUTH_SESSION_DATA: RG9taW5paw==\n" +  
+                            "2004-03-30 12:44:01 | AUTH_SESSION_DATA: RHppYWxrYQ==\n" +  
+                            "2025-02-14 10:05:33 | AUTH_SESSION_DATA: R3JvbXB1\n" +     
+                            "2022-09-30 18:55:12 | AUTH_SESSION_DATA: QnVjemk=\n" +    
+                            "2020-12-25 00:00:00 | AUTH_SESSION_DATA: RmlldGtv\n" +     
+                            "2019-07-04 14:12:09 | AUTH_SESSION_DATA: TWFyeXNpYQ==\n" +  
+                            "2023-05-01 09:00:00 | AUTH_SESSION_DATA: TWFydGE=\n" +     
+                            "2026-03-26 13:21:00 | AUTH_SESSION_DATA: UGF3ZWw=\n" +    
+                            "2021-11-11 11:11:11 | AUTH_SESSION_DATA: UGVtZWs=\n" +    
+                            "2022-03-03 03:33:33 | AUTH_SESSION_DATA: V2ljaXU=\n" +      
+                            "2024-08-08 08:08:08 | AUTH_SESSION_DATA: WnV6YQ==\n" +      
+                            "2023-10-10 10:10:10 | AUTH_SESSION_DATA: S3J6eXNpdQ==\n", 
                         "access.bak": "ACCESS_DENIED: Higher Permission Level Required"
                     }
                 },
@@ -160,7 +174,6 @@
         let currentPath = "~";
         let currentDirObj = virtualFS;
 
-        // Funkcja aktualizująca tekst zachęty na dole
         function updateBottomPrompt() {
             bottomPrompt.innerText = `adrian@sys-node:${currentPath}#`;
         }
@@ -214,7 +227,7 @@
                             output += "<p class='error-msg'>ACCESS DENIED: Higher Permission Level Required</p>";
                         }
                     }
-                    updateBottomPrompt(); // AKTUALIZACJA NA DOLE PO CD
+                    updateBottomPrompt();
                     break;
                 case 'cat':
                     let file = args[1];
@@ -222,7 +235,7 @@
                         if (currentDirObj.files[file].includes("ACCESS_DENIED")) {
                              output += "<p class='error-msg'>ACCESS DENIED: Higher Permission Level Required</p>";
                         } else {
-                             output += "<p style='color: #fff;'>" + currentDirObj.files[file] + "</p>";
+                             output += "<p style='color: #fff; white-space: pre-wrap;'>" + currentDirObj.files[file] + "</p>";
                         }
                     } else {
                         output += "<p class='error-msg'>ACCESS DENIED: Higher Permission Level Required</p>";
@@ -291,7 +304,6 @@
             } else {
                 inputLine.style.display = "block";
                 cmdInput.focus();
-                // Dodajemy prompt do historii na koniec intro
                 logsDiv.innerHTML += "<p class='mockup-prompt-char'>adrian@sys-node:" + currentPath + "# </p>";
                 logsContainer.scrollTop = logsContainer.scrollHeight;
             }
