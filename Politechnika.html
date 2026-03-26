@@ -505,8 +505,36 @@
         });
 
         // --- INPUT TERMINALA ---
-        cmdInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !isEditing) {
+        cmdInput.addEventListener('keydown', function(e) {
+            if (isEditing) return; // Blokada dla otwartego edytora
+
+            if (e.key === 'Tab') {
+                e.preventDefault(); // Blokuje przeskakiwanie focusu w przeglądarce
+                const currentVal = this.value;
+                const parts = currentVal.trimLeft().split(/\s+/);
+
+                // Autouzupełnianie komend (pierwsze słowo)
+                if (parts.length === 1 && parts[0].length > 0) {
+                    const matches = knownCommands.filter(c => c.startsWith(parts[0].toLowerCase()));
+                    if (matches.length === 1) {
+                        this.value = matches[0] + " ";
+                    }
+                } 
+                // Autouzupełnianie plików (drugie słowo)
+                else if (parts.length === 2) {
+                    const cmd = parts[0];
+                    const prefix = parts[1];
+                    const availableFiles = Object.keys(virtualFiles);
+                    const matches = availableFiles.filter(f => f.startsWith(prefix));
+
+                    if (matches.length === 1) {
+                        this.value = cmd + " " + matches[0];
+                    }
+                }
+                updateCmdDisplay();
+            }
+
+            if (e.key === 'Enter') {
                 executeCommand(this.value);
                 this.value = '';
                 updateCmdDisplay();
