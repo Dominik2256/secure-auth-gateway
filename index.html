@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>SECURE TERMINAL - ARG LEVEL 1</title>
+    <style>
+        body { 
+            background-color: #050505; 
+            color: #0f0; 
+            font-family: 'Courier New', monospace; 
+            margin: 0; 
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; 
+        }
+        #terminal-wrapper {
+            width: 800px;
+            height: 500px;
+            border: 2px solid #0f0; 
+            box-shadow: 0 0 15px #0f0, inset 0 0 10px #0f0; 
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #000;
+        }
+        #terminal-content {
+            height: 100%;
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .crt-effect { text-shadow: 0 0 4px #0f0; }
+        p { margin: 2px 0; font-size: 15px; word-wrap: break-word; }
+        
+        #logs-container {
+            flex-grow: 1;
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+        }
+        #logs {
+            margin-top: auto; 
+        }
+
+        #input_line { display: none; margin-top: 15px; border-top: 1px dashed #0f0; padding-top: 15px; }
+        
+        .terminal-prompt-mockup { 
+            display: flex; 
+            align-items: center; 
+            font-size: 15px; 
+            position: relative;
+        }
+        .mockup-text { margin-right: 2px; }
+        .mockup-brackets { 
+            display: inline-flex; 
+            align-items: center; 
+            position: relative;
+        }
+        .real-pass-display { 
+            position: relative; 
+            color: #0f0; 
+            letter-spacing: 0.1em; 
+        }
+        
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+        .block-cursor { 
+            display: inline-block; 
+            width: 12px; 
+            height: 1.2em; 
+            background-color: #0f0; 
+            animation: blink 1s step-end infinite; 
+            margin-left: -1px; 
+        }
+
+        #passInput { 
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0; 
+            cursor: text;
+            width: 100%; 
+            font-size: 15px;
+            pointer-events: auto; 
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- SYSTEM LOCK: ZABEZPIECZENIE POZIOM 1 -->
+    <!-- h: START_2026 -->
+    <input type="hidden" id="backup_token" value="U2VrcmV0MjAyNg==">
+
+    <div id="terminal-wrapper" class="crt-effect">
+        <div id="terminal-content">
+            <div id="logs-container">
+                <div id="logs"></div>
+            </div>
+            
+            <div id="input_line">
+                <div id="status_output"></div>
+                
+                <div class="terminal-prompt-mockup" id="prompt-area">
+                    <span class="mockup-text">[ PASSWORD:</span>
+                    <span class="mockup-brackets">[
+                        <span class="real-pass-display" id="realPassDisplay"></span>
+                        <span class="block-cursor"></span>
+                    ]</span>
+                    <input type="text" id="passInput" autocomplete="off" oninput="updatePassDisplay()">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log("%c[OSTRZEŻENIE SYSTEMOWE]", "color: red; font-size: 18px; font-weight: bold;");
+        console.log("Drugie hasło ukryte jest w kodzie strony jako Base64.");
+        console.log("Trzecie hasło wysłano w fałszywym nagłówku sieciowym (Network tab).");
+
+        fetch('https://jsonplaceholder.typicode.com/todos/1', {
+            headers: { 'X-Secret-Key': 'HASLO_NAGLOWEK' }
+        }).catch(() => {});
+
+        const logsDiv = document.getElementById('logs');
+        const logsContainer = document.getElementById('logs-container');
+        const inputLine = document.getElementById('input_line');
+        const passInput = document.getElementById('passInput');
+        const realPassDisplay = document.getElementById('realPassDisplay');
+
+        function updatePassDisplay() {
+            realPassDisplay.innerHTML = passInput.value.replace(/ /g, '&nbsp;');
+        }
+
+        const hakerLogs = [
+            "Initiating core systems...",
+            "Loading kernel modules... [OK]",
+            "Mounting virtual drives... [OK]",
+            "Establishing secure connection to target server...",
+            "Routing through proxy 192.168.1.104...",
+            "Routing through proxy 10.0.0.52...",
+            "Routing through proxy 172.16.254.1...",
+            "Node 1: ONLINE | Node 2: ONLINE | Node 3: OFFLINE",
+            "Rerouting traffic to backup nodes...",
+            "Bypassing external firewall... SUCCESS",
+            "Scanning open ports...",
+            "Port 22 (SSH) - FILTERED",
+            "Port 80 (HTTP) - OPEN",
+            "Port 443 (HTTPS) - OPEN",
+            "Target acquired. Injecting payload into memory...",
+            "0x00A1F4C: 8B 45 08 8B 00 8B 40 0C 5D C3",
+            "0x00A1F56: 55 8B EC 83 EC 08 53 56 57 8B",
+            "Memory dumped successfully.",
+            "Analyzing root directory...",
+            "Injecting SQL blind payload...",
+            "Fetching admin tables...",
+            "Table 'users' found. Extracting salt...",
+            "Allocating 2,048MB for rainbow tables...",
+            "Cracking hashes. Estimated time: 0.002s",
+            "Found encrypted directory: /admin-panel-secret/",
+            "Attempting to brute-force hashes...",
+            "Hash: 5e884898da28047151d0e56f8dc6292773603d0d6...",
+            "Decryption failed. Signature mismatch.",
+            "Executing privilege escalation exploit (CVE-2024-9999)...",
+            "Root access simulated.",
+            "Downloading encrypted payload...",
+            "PROGRESS_BAR",
+            "Verifying file integrity...",
+            "Checksum valid. Deploying...",
+            "Switching to fallback authentication protocol...",
+            "Disabling local logs...",
+            "Wiping tracks... [DONE]",
+            "==================================================",
+            "WARNING: UNAUTHORIZED ACCESS DETECTED",
+            "SYSTEM LOCKDOWN INITIATED",
+            "==================================================",
+            "Waiting for authentication..."
+        ];
+
+        let logIndex = 0;
+        
+        function printNextLog() {
+            if (logIndex < hakerLogs.length) {
+                let currentLog = hakerLogs[logIndex];
+                
+                if (currentLog === "PROGRESS_BAR") {
+                    const p = document.createElement('p');
+                    logsDiv.appendChild(p);
+                    let percent = 0;
+                    let barLength = 20; 
+                    
+                    function updateBar() {
+                        let hashes = Math.floor((percent / 100) * barLength);
+                        let spaces = barLength - hashes;
+                        let barStr = "[" + "#".repeat(hashes) + "&nbsp;".repeat(spaces) + "] " + ("  " + percent).slice(-3) + "%";
+                        p.innerHTML = barStr;
+                        logsContainer.scrollTop = logsContainer.scrollHeight;
+                        
+                        if (percent < 100) {
+                            percent += Math.floor(Math.random() * 4) + 1; 
+                            if (percent > 100) percent = 100;
+                            setTimeout(updateBar, 40); 
+                        } else {
+                            logIndex++;
+                            setTimeout(printNextLog, 200); 
+                        }
+                    }
+                    updateBar();
+                    return; 
+                }
+
+                const log = document.createElement('p');
+                log.innerText = currentLog;
+                logsDiv.appendChild(log);
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+                
+                logIndex++;
+                const speed = Math.random() < 0.15 ? 300 : Math.floor(Math.random() * 60) + 50; 
+                setTimeout(printNextLog, speed);
+            } else {
+                inputLine.style.display = "block";
+                passInput.focus();
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+            }
+        }
+
+        window.onload = () => {
+            setTimeout(printNextLog, 500);
+        };
+
+        // Obfuscator weryfikacji haseł
+        function checkCode(input, target) {
+            if (input.length !== target.length) return false;
+            for (let i = 0; i < input.length; i++) {
+                if (input.charCodeAt(i) + 5 !== target[i]) return false;
+            }
+            return true;
+        }
+
+        passInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const val = this.value.trim().toUpperCase();
+                const out = document.getElementById('status_output');
+                
+                // Weryfikacja odbywa się przez porównanie z przesuniętą tablicą ASCII
+                if (checkCode(val, [88, 89, 70, 87, 89, 100, 55, 53, 55, 61])) {
+                    out.innerHTML = "<span style='color: #0f0;'>[+] ZABEZPIECZENIE 1 (HTML): ODBLOKOWANE. Szukaj ukrytych pół w kodzie.</span>";
+                } else if (checkCode(val, [88, 74, 80, 87, 74, 89, 55, 53, 55, 61])) {
+                    out.innerHTML = "<span style='color: #0f0;'>[+] ZABEZPIECZENIE 2 (BASE64): ODBLOKOWANE. Skup się na ruchu sieciowym.</span>";
+                } else if (checkCode(val, [77, 70, 88, 81, 84, 100, 83, 70, 76, 81, 84, 92, 74, 80])) {
+                    out.innerHTML = "<span style='color: #0f0;'>[+] ZABEZPIECZENIE 3 (NETWORK): ODBLOKOWANE</span><br><br>Wskazówka: Zbadaj protokół wykluczeń dla robotów (robots.txt), by przejść dalej.";
+                } else {
+                    out.innerHTML = "<span style='color: red;'>[-] ODMOWA DOSTĘPU: Błędny klucz.</span>";
+                }
+                
+                this.value = '';
+                updatePassDisplay();
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+            }
+        });
+
+        document.getElementById('terminal-wrapper').addEventListener('click', () => {
+            if (inputLine.style.display === "block") passInput.focus();
+        });
+    </script>
+</body>
+</html>
