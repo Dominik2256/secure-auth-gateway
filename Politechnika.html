@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>WIRTUALNY DZIEKANAT - TRYB AWARYJNY</title>
+    <style>
+        body { 
+            background-color: #0000aa; /* Klasyczny Blue Screen */
+            color: #fff; 
+            font-family: 'Consolas', 'Courier New', monospace; 
+            margin: 0; 
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            max-width: 800px;
+            text-align: left;
+        }
+        h1 { background: #fff; color: #0000aa; display: inline-block; padding: 2px 10px; margin-bottom: 20px; }
+        p { line-height: 1.5; margin: 10px 0; font-size: 18px; }
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+        
+        #startBtn {
+            background-color: #fff;
+            color: #0000aa;
+            border: none;
+            padding: 10px 20px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 30px;
+            font-family: 'Consolas', 'Courier New', monospace;
+        }
+        #startBtn:hover { background-color: #ccc; }
+
+        #terminal-interface { display: none; margin-top: 30px; width: 100%; }
+        input { 
+            background: transparent; 
+            color: #fff; 
+            border: none; 
+            border-bottom: 2px solid #fff; 
+            font-size: 20px; 
+            font-family: 'Consolas', monospace; 
+            outline: none; 
+            text-transform: uppercase;
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="main-screen">
+        <h1>BŁĄD KRYTYCZNY BAZY DANYCH (POLITECHNIKA)</h1>
+        <p>Wystąpił problem z odczytem danych studenta.</p>
+        <p>Wentylatory serwera pracują na 100% z powodu przegrzania procesora głównego. Detekcja anomalii w kanale audio...</p>
+        <p>Aby przywrócić dostęp, odkoduj sygnał HEX i zautoryzuj się poniżej.</p>
+        
+        <button id="startBtn">>> REBOOT SYSTEM & LISTEN <<</button>
+    </div>
+
+    <div class="container" id="terminal-interface">
+        <p>> SYGNAŁ W TOKU...</p>
+        <p>> WPROWADŹ ODKODOWANE HASŁO (ASCII):</p>
+        <span style="font-size: 20px;">$ </span><input type="text" id="answerInput" autocomplete="off" autofocus>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const terminal = document.getElementById('terminal-interface');
+        const answerInput = document.getElementById('answerInput');
+
+        let audioCtx;
+
+        async function initAudio() {
+            startBtn.innerText = "ŁADOWANIE DŹWIĘKÓW...";
+            startBtn.disabled = true;
+
+            // Inicjalizacja kontekstu audio (musi być po kliknięciu usera)
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            try {
+                // Pobieranie plików
+                const [startRes, loopRes, morseRes] = await Promise.all([
+                    fetch('start.wav'),
+                    fetch('loop.wav'),
+                    fetch('morse.wav')
+                ]);
+
+                const startArrayBuffer = await startRes.arrayBuffer();
+                const loopArrayBuffer = await loopRes.arrayBuffer();
+                const morseArrayBuffer = await morseRes.arrayBuffer();
+
+                // Dekodowanie
+                const startBuffer = await audioCtx.decodeAudioData(startArrayBuffer);
+                const loopBuffer = await audioCtx.decodeAudioData(loopArrayBuffer);
+                const morseBuffer = await audioCtx.decodeAudioData(morseArrayBuffer);
+
+                // Konfiguracja źródeł
+                const startSource = audioCtx.createBufferSource();
+                startSource.buffer = startBuffer;
+
+                const loopSource = audioCtx.createBufferSource();
+                loopSource.buffer = loopBuffer;
+                loopSource.loop = true; // Zapętlenie szumu
+
+                const morseSource = audioCtx.createBufferSource();
+                morseSource.buffer = morseBuffer;
+
+                // Podpięcie do głośników
+                startSource.connect(audioCtx.destination);
+                loopSource.connect(audioCtx.destination);
+                morseSource.connect(audioCtx.destination);
+
+                // Precyzyjne odpalenie w czasie (t0)
+                const t0 = audioCtx.currentTime;
+                
+                startSource.start(t0); 
+                loopSource.start(t0 + startBuffer.duration); // Pętla rusza ułamek sekundy po końcu startu
+                morseSource.start(t0 + startBuffer.duration + 5); // Morse rusza 5 sekund po starcie pętli
+
+                // Zmiana interfejsu
+                startBtn.style.display = 'none';
+                terminal.style.display = 'block';
+                answerInput.focus();
+
+            } catch (e) {
+                alert("Błąd ładowania plików audio. Upewnij się, że start.wav, loop.wav i morse.wav są w repozytorium.");
+                console.error(e);
+                startBtn.innerText = "BŁĄD AUDIO";
+            }
+        }
+
+        startBtn.addEventListener('click', initAudio);
+
+        answerInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const val = this.value.trim().toLowerCase();
+                if (val === 'adrian') {
+                    // Tutaj wstawimy link do Etapu 3
+                    window.location.href = "Etap3.html"; 
+                } else {
+                    alert("BŁĘDNE DANE. SPRÓBUJ PONOWNIE.");
+                    this.value = '';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
