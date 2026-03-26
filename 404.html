@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>SECURE TERMINAL - 404 ERROR</title>
+    <style>
+        body { 
+            background-color: #050505; 
+            color: #ff0000; /* Zmiana na czerwony alertowy */
+            font-family: 'Courier New', monospace; 
+            margin: 0; 
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; 
+        }
+        #terminal-wrapper {
+            width: 800px;
+            height: 500px;
+            border: 2px solid #ff0000; 
+            box-shadow: 0 0 15px #ff0000, inset 0 0 10px #ff0000; 
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #220000; /* Lekko czerwonawe tło */
+        }
+        #terminal-content {
+            height: 100%;
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .crt-effect { text-shadow: 0 0 4px #ff0000; }
+        p { margin: 2px 0; font-size: 15px; word-wrap: break-word; font-weight: bold; }
+        
+        #logs-container {
+            flex-grow: 1;
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+        }
+        #logs { margin-top: auto; }
+        
+        .blink-text {
+            animation: blinker 1s linear infinite;
+        }
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal-wrapper" class="crt-effect">
+        <div id="terminal-content">
+            <div id="logs-container">
+                <div id="logs"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const logsDiv = document.getElementById('logs');
+        const logsContainer = document.getElementById('logs-container');
+
+        const errorLogs = [
+            "==================================================",
+            "FATAL ERROR: 404 - ENDPOINT NOT FOUND",
+            "==================================================",
+            "INVALID PASSPHRASE DETECTED.",
+            "ACCESS DENIED.",
+            "Triggering active defense mechanisms...",
+            "Logging IP address...",
+            "IP LOGGED.",
+            "Logging MAC address...",
+            "MAC LOGGED.",
+            "Isolating connection...",
+            "Connection terminated by remote host.",
+            " ",
+            "System will forcefully reboot connection in..."
+        ];
+
+        let logIndex = 0;
+        
+        function printNextLog() {
+            if (logIndex < errorLogs.length) {
+                const log = document.createElement('p');
+                log.innerText = errorLogs[logIndex];
+                logsDiv.appendChild(log);
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+                
+                logIndex++;
+                const speed = Math.floor(Math.random() * 80) + 40; 
+                setTimeout(printNextLog, speed);
+            } else {
+                startCountdown(5);
+            }
+        }
+
+        function startCountdown(seconds) {
+            const countdownEl = document.createElement('p');
+            countdownEl.className = 'blink-text';
+            logsDiv.appendChild(countdownEl);
+
+            const interval = setInterval(() => {
+                countdownEl.innerText = `[ REBOOTING IN: ${seconds} ]`;
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+                seconds--;
+
+                if (seconds < 0) {
+                    clearInterval(interval);
+                    // Automatyczny powrót do strony głównej (katalogu głównego repozytorium)
+                    window.location.href = "/"; 
+                }
+            }, 1000);
+        }
+
+        window.onload = () => {
+            setTimeout(printNextLog, 300);
+        };
+    </script>
+</body>
+</html>
