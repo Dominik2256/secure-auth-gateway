@@ -1,1 +1,260 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>SECURE TERMINAL - POZIOM 2</title>
+    <style>
+        body { 
+            background-color: #030303; 
+            color: #00eeff; 
+            font-family: 'Courier New', monospace; 
+            margin: 0; 
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; 
+        }
+        #terminal-wrapper {
+            width: 850px;
+            height: 550px;
+            border: 2px solid #00eeff; 
+            box-shadow: 0 0 15px #00eeff, inset 0 0 10px #00eeff; 
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #000;
+        }
+        #terminal-content {
+            height: 100%;
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .crt-effect { text-shadow: 0 0 4px #00eeff; }
+        p { margin: 2px 0; font-size: 14px; word-wrap: break-word; line-height: 1.4; }
+        
+        #logs-container {
+            flex-grow: 1;
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+        }
+        #logs { margin-top: auto; }
 
+        #input_line { display: none; margin-top: 15px; border-top: 1px dashed #00eeff; padding-top: 10px; }
+        
+        .terminal-prompt-mockup { 
+            display: flex; 
+            align-items: center; 
+            font-size: 14px; 
+            position: relative;
+        }
+        .mockup-prompt-char { color: #ff00ff; font-weight: bold; margin-right: 5px; } 
+        .mockup-brackets { 
+            display: inline-flex; 
+            align-items: center; 
+            position: relative;
+        }
+        .real-command-display { color: #00eeff; }
+        
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+        .block-cursor { 
+            display: inline-block; 
+            width: 10px; 
+            height: 1.2em; 
+            background-color: #00eeff; 
+            animation: blink 1s step-end infinite; 
+            margin-left: 1px; 
+        }
+
+        #cmdInput { 
+            position: absolute;
+            left: 0; top: 0;
+            opacity: 0; 
+            width: 100%; 
+            pointer-events: auto; 
+        }
+        
+        .ls-file { color: #00eeff; }
+        .ls-dir { color: #0f0; font-weight: bold; }
+        .error-msg { color: #ff3333; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="terminal-wrapper" class="crt-effect">
+        <div id="terminal-content">
+            <div id="logs-container">
+                <div id="logs"></div>
+            </div>
+            
+            <div id="input_line">
+                <div id="status_output"></div>
+                <div class="terminal-prompt-mockup">
+                    <span class="mockup-prompt-char">adrian@sys-node:~#</span>
+                    <span class="mockup-brackets">
+                        <span class="real-command-display" id="realCmdDisplay"></span>
+                        <span class="block-cursor"></span>
+                    ]</span>
+                    <input type="text" id="cmdInput" autocomplete="off" oninput="updateCmdDisplay()">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* 
+           #########################################################
+           #  STOP! PRZEGLĄDANIE KODU TO CHEATING (OSZUKIWANIE).   #
+           #  ADRIAN, PRAWDZIWY HAKER ROZWIĄZUJE TO W KONSOLI!     #
+           #  ZAMKNIJ TO OKNO I WRACAJ DO TERMINALA.               #
+           #########################################################
+        */
+
+        const logsDiv = document.getElementById('logs');
+        const logsContainer = document.getElementById('logs-container');
+        const inputLine = document.getElementById('input_line');
+        const cmdInput = document.getElementById('cmdInput');
+        const realCmdDisplay = document.getElementById('realCmdDisplay');
+
+        const introLogs = [
+            "Inicjalizacja modułów interaktywnych...",
+            "Ładowanie VFS (Virtual File System)... [OK]",
+            "Szyfrowanie sesji... [OK]",
+            " ",
+            "========================================",
+            "==    WITAJ ADRIAN W SYSTEMIE V2.0    ==",
+            "========================================",
+            "Dostęp przyznany dla użytkownika: adrian",
+            "Wpisz 'help', aby wyświetlić dostępne funkcje.",
+            "Twoim celem jest odnalezienie i zdekodowanie klucza.",
+            " "
+        ];
+
+        // System plików - Hasło: Dzialka -> Base64: RHppYWxrYQ==
+        const virtualFS = {
+            "name": "~",
+            "type": "dir",
+            "files": {
+                "readme.txt": "Adrian, poziom zabezpieczeń został podniesiony. Szukaj w głębi systemu.",
+                "logs": {
+                    "name": "logs",
+                    "type": "dir",
+                    "files": {
+                        "security.log": "TIMESTAMP | EVENT: KEY_GEN | DATA: RHppYWxrYQ==",
+                        "access.bak": "ACCESS_DENIED: Higher Permission Level Required"
+                    }
+                },
+                "private": {
+                    "name": "private",
+                    "type": "dir",
+                    "files": {}
+                }
+            }
+        };
+        
+        let currentPath = "~";
+        let currentDirObj = virtualFS;
+
+        function updateCmdDisplay() {
+            realCmdDisplay.innerHTML = cmdInput.value.replace(/ /g, '&nbsp;');
+        }
+
+        function executeCommand(command) {
+            const args = command.trim().split(' ');
+            const cmd = args[0].toLowerCase();
+            let output = "<p class='mockup-prompt-char'>adrian@sys-node:" + currentPath + "# " + command + "</p>";
+
+            const knownCommands = ['ls', 'cd', 'cat', 'pwd', 'help', 'clear', 'unlock'];
+
+            if (!knownCommands.includes(cmd) && cmd !== "") {
+                output += "<p class='error-msg'>ACCESS DENIED: Higher Permission Level Required</p>";
+                logsDiv.innerHTML += output;
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+                return;
+            }
+
+            switch (cmd) {
+                case 'help':
+                    output += "<p>Komendy: ls, cd, cat, pwd, clear, unlock [klucz]</p>";
+                    break;
+                case 'ls':
+                    let files = [];
+                    for (let name in currentDirObj.files) {
+                        let obj = currentDirObj.files[name];
+                        files.push(typeof obj === 'string' ? "<span class='ls-file'>"+name+"</span>" : "<span class='ls-dir'>"+name+"/</span>");
+                    }
+                    output += "<p>" + (files.length > 0 ? files.join("&nbsp;&nbsp;") : "[pusty katalog]") + "</p>";
+                    break;
+                case 'cd':
+                    let dest = args[1];
+                    if (!dest || dest === "~") {
+                        currentDirObj = virtualFS; currentPath = "~";
+                    } else if (dest === "..") {
+                        currentDirObj = virtualFS; currentPath = "~"; // Uproszczony powrót
+                    } else if (currentDirObj.files[dest] && currentDirObj.files[dest].type === 'dir') {
+                        currentDirObj = currentDirObj.files[dest];
+                        currentPath += "/" + dest;
+                    } else {
+                        output += "<p class='error-msg'>ACCESS DENIED: Higher Permission Level Required</p>";
+                    }
+                    break;
+                case 'cat':
+                    let file = args[1];
+                    if (currentDirObj.files[file] && typeof currentDirObj.files[file] === 'string') {
+                        if (currentDirObj.files[file].includes("ACCESS_DENIED")) {
+                             output += "<p class='error-msg'>ACCESS DENIED: Higher Permission Level Required</p>";
+                        } else {
+                             output += "<p style='color: #fff;'>" + currentDirObj.files[file] + "</p>";
+                        }
+                    } else {
+                        output += "<p class='error-msg'>ACCESS DENIED: Higher Permission Level Required</p>";
+                    }
+                    break;
+                case 'unlock':
+                    if (args[1] === "Dzialka") {
+                        output += "<p style='color: #0f0;'>[+] AUTORYZACJA POWIODŁA SIĘ. GENEROWANIE POŁĄCZENIA...</p>";
+                        setTimeout(() => { window.location.href = "final_stage.html"; }, 1500);
+                    } else {
+                        output += "<p class='error-msg'>INVALID ACCESS KEY. LOCKDOWN IN 3... 2... 1...</p>";
+                    }
+                    break;
+                case 'pwd': output += "<p>" + currentPath + "</p>"; break;
+                case 'clear': logsDiv.innerHTML = ""; return;
+            }
+
+            logsDiv.innerHTML += output;
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        cmdInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                executeCommand(this.value);
+                this.value = ''; updateCmdDisplay();
+            }
+        });
+
+        document.getElementById('terminal-wrapper').addEventListener('click', () => cmdInput.focus());
+
+        let introIndex = 0;
+        function printNextIntroLog() {
+            if (introIndex < introLogs.length) {
+                const log = document.createElement('p');
+                log.innerText = introLogs[introIndex];
+                if (introLogs[introIndex].includes("WITAJ")) log.style.color = "#ff0";
+                logsDiv.appendChild(log);
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+                introIndex++;
+                setTimeout(printNextIntroLog, 200);
+            } else {
+                inputLine.style.display = "block";
+                cmdInput.focus();
+                logsDiv.innerHTML += "<p class='mockup-prompt-char'>adrian@sys-node:" + currentPath + "# </p>";
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+            }
+        }
+        window.onload = () => setTimeout(printNextIntroLog, 500);
+    </script>
+</body>
+</html>
