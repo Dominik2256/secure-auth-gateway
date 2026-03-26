@@ -124,13 +124,14 @@
         const introLogs = [
             "Inicjalizacja modułów interaktywnych...",
             "Ładowanie VFS (Virtual File System)... [OK]",
+            "Szyfrowanie sesji... [OK]",
             " ",
             "========================================",
-            "==    WITAJ ADRIAN W SYSTEMIE V2.0    ==",
+            "==    WITAJ ADRIAN W SYSTEMIE V2.1    ==",
             "========================================",
             "Dostęp przyznany. Terminal gotowy.",
             "Wpisz 'help', aby wyświetlić listę poleceń.",
-            "Podpowiedź: Użyj klawisza [TAB], aby autouzupełnić komendę.",
+            "Podpowiedź: Użyj [TAB], aby uzupełnić komendy lub nazwy plików.",
             " "
         ];
 
@@ -177,12 +178,12 @@
             switch (cmd) {
                 case 'help':
                     output += "<p>Dostępne komendy:</p>";
-                    output += "<p class='help-list'>ls - wyświetla listę plików w obecnym katalogu</p>";
-                    output += "<p class='help-list'>cd [folder] - przechodzi do wskazanego katalogu</p>";
-                    output += "<p class='help-list'>cat [plik] - wyświetla zawartość pliku tekstowego</p>";
-                    output += "<p class='help-list'>pwd - pokazuje ścieżkę obecnego katalogu roboczego</p>";
-                    output += "<p class='help-list'>unlock [klucz] - inicjuje procedurę odblokowania systemu</p>";
-                    output += "<p class='help-list'>clear - czyści ekran terminala</p>";
+                    output += "<p class='help-list'>ls - wyświetla listę plików</p>";
+                    output += "<p class='help-list'>cd [folder] - przechodzi do katalogu</p>";
+                    output += "<p class='help-list'>cat [plik] - czyta zawartość pliku</p>";
+                    output += "<p class='help-list'>pwd - pokazuje obecną ścieżkę</p>";
+                    output += "<p class='help-list'>unlock [klucz] - procedura odblokowania</p>";
+                    output += "<p class='help-list'>clear - czyści ekran</p>";
                     break;
                 case 'ls':
                     let files = [];
@@ -198,11 +199,15 @@
                         currentDirObj = virtualFS; currentPath = "~";
                     } else if (dest === "..") {
                         currentDirObj = virtualFS; currentPath = "~"; 
-                    } else if (currentDirObj.files[dest] && currentDirObj.files[dest].type === 'dir') {
-                        currentDirObj = currentDirObj.files[dest];
-                        currentPath += "/" + dest;
                     } else {
-                        output += "<p class='error-msg'>ACCESS DENIED: Higher Permission Level Required</p>";
+                        // Obsługa cd z ukośnikiem na końcu (od Tabulatora)
+                        if (dest.endsWith('/')) dest = dest.slice(0, -1);
+                        if (currentDirObj.files[dest] && currentDirObj.files[dest].type === 'dir') {
+                            currentDirObj = currentDirObj.files[dest];
+                            currentPath += "/" + dest;
+                        } else {
+                            output += "<p class='error-msg'>ACCESS DENIED: Higher Permission Level Required</p>";
+                        }
                     }
                     break;
                 case 'cat':
@@ -233,18 +238,34 @@
             logsContainer.scrollTop = logsContainer.scrollHeight;
         }
 
-        // Obsługa Tabulatora i Entera
+        // --- ZAAWANSOWANA LOGIKA TABULATORA ---
         cmdInput.addEventListener('keydown', function(e) {
             if (e.key === 'Tab') {
                 e.preventDefault();
-                const currentVal = this.value.trim().toLowerCase();
-                if (currentVal.length > 0) {
-                    const matches = knownCommands.filter(c => c.startsWith(currentVal));
+                const currentVal = this.value.trim();
+                const parts = currentVal.split(/\s+/);
+
+                // Autouzupełnianie komendy (pierwsze słowo)
+                if (parts.length === 1 && currentVal.length > 0) {
+                    const matches = knownCommands.filter(c => c.startsWith(currentVal.toLowerCase()));
                     if (matches.length === 1) {
-                        this.value = matches[0];
-                        updateCmdDisplay();
+                        this.value = matches[0] + " ";
+                    }
+                } 
+                // Autouzupełnianie pliku/folderu (drugie słowo)
+                else if (parts.length === 2) {
+                    const cmd = parts[0];
+                    const prefix = parts[1];
+                    const availableFiles = Object.keys(currentDirObj.files);
+                    const matches = availableFiles.filter(f => f.startsWith(prefix));
+
+                    if (matches.length === 1) {
+                        const match = matches[0];
+                        const isDir = typeof currentDirObj.files[match] !== 'string';
+                        this.value = cmd + " " + match + (isDir ? "/" : "");
                     }
                 }
+                updateCmdDisplay();
             }
             if (e.key === 'Enter') {
                 executeCommand(this.value);
