@@ -40,9 +40,7 @@
             display: flex;
             flex-direction: column;
         }
-        #logs {
-            margin-top: auto; 
-        }
+        #logs { margin-top: auto; }
 
         #input_line { display: none; margin-top: 15px; border-top: 1px dashed #0f0; padding-top: 15px; }
         
@@ -89,8 +87,7 @@
 <body>
     
     <!-- SYSTEM LOCK: ZABEZPIECZENIE POZIOM 1 -->
-    <!-- h: START_2026 -->
-    <input type="hidden" id="backup_token" value="U2VrcmV0MjAyNg==">
+    <!-- Wskazówka 1: Sprawdź źródło. Kod dostępu to: Irish_Pub -->
 
     <div id="terminal-wrapper" class="crt-effect">
         <div id="terminal-content">
@@ -114,14 +111,6 @@
     </div>
 
     <script>
-        console.log("%c[OSTRZEŻENIE SYSTEMOWE]", "color: red; font-size: 18px; font-weight: bold;");
-        console.log("Drugie hasło ukryte jest w kodzie strony jako Base64.");
-        console.log("Trzecie hasło wysłano w fałszywym nagłówku sieciowym (Network tab).");
-
-        fetch('https://jsonplaceholder.typicode.com/todos/1', {
-            headers: { 'X-Secret-Key': 'HASLO_NAGLOWEK' }
-        }).catch(() => {});
-
         const logsDiv = document.getElementById('logs');
         const logsContainer = document.getElementById('logs-container');
         const inputLine = document.getElementById('input_line');
@@ -138,32 +127,12 @@
             "Mounting virtual drives... [OK]",
             "Establishing secure connection to target server...",
             "Routing through proxy 192.168.1.104...",
-            "Routing through proxy 10.0.0.52...",
-            "Routing through proxy 172.16.254.1...",
             "Node 1: ONLINE | Node 2: ONLINE | Node 3: OFFLINE",
-            "Rerouting traffic to backup nodes...",
             "Bypassing external firewall... SUCCESS",
-            "Scanning open ports...",
-            "Port 22 (SSH) - FILTERED",
-            "Port 80 (HTTP) - OPEN",
-            "Port 443 (HTTPS) - OPEN",
             "Target acquired. Injecting payload into memory...",
             "0x00A1F4C: 8B 45 08 8B 00 8B 40 0C 5D C3",
-            "0x00A1F56: 55 8B EC 83 EC 08 53 56 57 8B",
             "Memory dumped successfully.",
             "Analyzing root directory...",
-            "Injecting SQL blind payload...",
-            "Fetching admin tables...",
-            "Table 'users' found. Extracting salt...",
-            "Allocating 2,048MB for rainbow tables...",
-            "Cracking hashes. Estimated time: 0.002s",
-            "Found encrypted directory: /admin-panel-secret/",
-            "Attempting to brute-force hashes...",
-            "Hash: 5e884898da28047151d0e56f8dc6292773603d0d6...",
-            "Decryption failed. Signature mismatch.",
-            "Executing privilege escalation exploit (CVE-2024-9999)...",
-            "Root access simulated.",
-            "Downloading encrypted payload...",
             "PROGRESS_BAR",
             "Verifying file integrity...",
             "Checksum valid. Deploying...",
@@ -197,9 +166,9 @@
                         logsContainer.scrollTop = logsContainer.scrollHeight;
                         
                         if (percent < 100) {
-                            percent += Math.floor(Math.random() * 4) + 1; 
+                            percent += Math.floor(Math.random() * 5) + 2; 
                             if (percent > 100) percent = 100;
-                            setTimeout(updateBar, 40); 
+                            setTimeout(updateBar, 50); 
                         } else {
                             logIndex++;
                             setTimeout(printNextLog, 200); 
@@ -215,7 +184,7 @@
                 logsContainer.scrollTop = logsContainer.scrollHeight;
                 
                 logIndex++;
-                const speed = Math.random() < 0.15 ? 300 : Math.floor(Math.random() * 60) + 50; 
+                const speed = Math.random() < 0.15 ? 300 : Math.floor(Math.random() * 60) + 40; 
                 setTimeout(printNextLog, speed);
             } else {
                 inputLine.style.display = "block";
@@ -228,34 +197,18 @@
             setTimeout(printNextLog, 500);
         };
 
-        // Obfuscator weryfikacji haseł
-        function checkCode(input, target) {
-            if (input.length !== target.length) return false;
-            for (let i = 0; i < input.length; i++) {
-                if (input.charCodeAt(i) + 5 !== target[i]) return false;
-            }
-            return true;
-        }
-
         passInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                const val = this.value.trim().toUpperCase();
-                const out = document.getElementById('status_output');
+                const val = this.value.trim();
                 
-                // Weryfikacja odbywa się przez porównanie z przesuniętą tablicą ASCII
-                if (checkCode(val, [88, 89, 70, 87, 89, 100, 55, 53, 55, 61])) {
-                    out.innerHTML = "<span style='color: #0f0;'>[+] ZABEZPIECZENIE 1 (HTML): ODBLOKOWANE. Szukaj ukrytych pół w kodzie.</span>";
-                } else if (checkCode(val, [88, 74, 80, 87, 74, 89, 55, 53, 55, 61])) {
-                    out.innerHTML = "<span style='color: #0f0;'>[+] ZABEZPIECZENIE 2 (BASE64): ODBLOKOWANE. Skup się na ruchu sieciowym.</span>";
-                } else if (checkCode(val, [77, 70, 88, 81, 84, 100, 83, 70, 76, 81, 84, 92, 74, 80])) {
-                    out.innerHTML = "<span style='color: #0f0;'>[+] ZABEZPIECZENIE 3 (NETWORK): ODBLOKOWANE</span><br><br>Wskazówka: Zbadaj protokół wykluczeń dla robotów (robots.txt), by przejść dalej.";
-                } else {
-                    out.innerHTML = "<span style='color: red;'>[-] ODMOWA DOSTĘPU: Błędny klucz.</span>";
-                }
+                document.getElementById('status_output').innerHTML = "<span style='color: #0f0;'>Weryfikacja klucza dostępu...</span>";
+                
+                setTimeout(() => {
+                    window.location.href = val + ".html";
+                }, 800);
                 
                 this.value = '';
                 updatePassDisplay();
-                logsContainer.scrollTop = logsContainer.scrollHeight;
             }
         });
 
