@@ -61,70 +61,37 @@
         
         .led-container { display: flex; align-items: center; width: 100%; margin: 15px 0; padding: 10px; border: 1px solid transparent;}
         .led {
-            width: 40px; height: 40px;
-            border-radius: 50%;
-            background-color: #222;
-            margin-right: 20px;
-            box-shadow: inset 0 0 10px #000;
+            width: 40px; height: 40px; border-radius: 50%; background-color: #222; 
+            margin-right: 20px; box-shadow: inset 0 0 10px #000;
             transition: background-color 0.2s, box-shadow 0.2s;
         }
         .led-label { font-size: 16px; font-weight: bold; color: #aaa; text-transform: uppercase; }
 
         .led.orange { background-color: #ffaa00; box-shadow: 0 0 20px #ffaa00, inset 0 0 10px rgba(255,255,255,0.5); color: #fff; }
         .led.green { background-color: #00ff00; box-shadow: 0 0 20px #00ff00, inset 0 0 10px rgba(255,255,255,0.5); }
-        .led.red-flash { animation: redFlash 0.5s linear 2; } /* Miganie na czerwono */
-        @keyframes redFlash {
-            0%, 100% { background-color: #222; box-shadow: none; }
-            50% { background-color: #ff0000; box-shadow: 0 0 30px #ff0000; }
-        }
+        .led.red-flash { animation: redFlash 0.5s linear 2; } 
+        @keyframes redFlash { 0%, 100% { background-color: #222; box-shadow: none; } 50% { background-color: #ff0000; box-shadow: 0 0 30px #ff0000; } }
 
         .led.morse-blink { animation: morseBlink 0.1s linear; }
-        @keyframes morseBlink {
-            0%, 100% { background-color: #222; box-shadow: none; }
-            10%, 90% { background-color: #ffaa00; box-shadow: 0 0 20px #ffaa00; }
-        }
+        @keyframes morseBlink { 0%, 100% { background-color: #222; box-shadow: none; } 10%, 90% { background-color: #ffaa00; box-shadow: 0 0 20px #ffaa00; } }
 
         #editor-overlay {
-            display: none;
-            position: absolute;
-            top: 20px; left: 20px; right: 20px; bottom: 20px;
-            background: rgba(0, 10, 0, 0.95);
-            border: 1px solid #0f0;
-            z-index: 100;
-            flex-direction: column;
-            padding: 10px;
+            display: none; position: absolute; top: 20px; left: 20px; right: 20px; bottom: 20px;
+            background: rgba(0, 10, 0, 0.95); border: 1px solid #0f0; z-index: 100; flex-direction: column; padding: 10px;
         }
         #editor-header { color: #000; background: #0f0; padding: 2px 10px; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between;}
-        #editor-textarea {
-            flex-grow: 1;
-            background: transparent;
-            color: #0f0;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            border: none;
-            outline: none;
-            resize: none;
-        }
+        #editor-textarea { flex-grow: 1; background: transparent; color: #0f0; font-family: 'Courier New', monospace; font-size: 14px; border: none; outline: none; resize: none;}
         #editor-footer { font-size: 12px; color: #aaa; margin-top: 5px; border-top: 1px dashed #0f0; padding-top: 5px;}
 
-        #start-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 1000;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-        }
-        #startBtn {
-            background: transparent; border: 2px solid #0f0; color: #0f0;
-            padding: 15px 30px; font-size: 20px; font-family: monospace;
-            cursor: pointer; text-transform: uppercase; box-shadow: 0 0 10px #0f0;
-        }
+        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center;}
+        #startBtn { background: transparent; border: 2px solid #0f0; color: #0f0; padding: 15px 30px; font-size: 20px; font-family: monospace; cursor: pointer; text-transform: uppercase; box-shadow: 0 0 10px #0f0;}
         #startBtn:hover { background: #0f0; color: #000; }
-
     </style>
 </head>
 <body>
 
     <div id="start-screen">
-        <h2 style="color: #0f0;">SYSTEM DIAGNOSTYCZNY</h2>
+        <h2 style="color: #0f0;">SYSTEM DIAGNOSTYCZNY - ADRIAN</h2>
         <p style="color: #0f0; margin-bottom: 20px;">Wymagana autoryzacja dostępu do kanału audio.</p>
         <button id="startBtn">>> Zainicjuj Sekwencję Startową <<</button>
     </div>
@@ -136,7 +103,7 @@
             </div>
             
             <div class="terminal-prompt-mockup">
-                <span class="mockup-prompt-char">adrian@sys-node:~#</span>
+                <span class="mockup-prompt-char" id="promptStr">adrian@sys-node:~#</span>
                 <span class="mockup-brackets">[
                     <span class="real-command-display" id="realCmdDisplay"></span>
                     <span class="block-cursor"></span>
@@ -177,7 +144,6 @@
     </div>
 
     <script>
-        // --- KONFIGURACJA I STAN ---
         const logsDiv = document.getElementById('logs');
         const logsContainer = document.getElementById('logs-container');
         const cmdInput = document.getElementById('cmdInput');
@@ -187,238 +153,241 @@
         const editorOverlay = document.getElementById('editor-overlay');
         const editorTextarea = document.getElementById('editor-textarea');
         const editorStatus = document.getElementById('editor-status');
+        const promptStr = document.getElementById('promptStr');
 
-        const leds = {
-            1: document.getElementById('led-1'),
-            2: document.getElementById('led-2'),
-            3: document.getElementById('led-3')
-        };
+        const leds = { 1: document.getElementById('led-1'), 2: document.getElementById('led-2'), 3: document.getElementById('led-3') };
 
-        const knownCommands = ['ls', 'cat', 'edit', 'clear', 'unlock', 'help'];
-        let currentStage = 1; // 1, 2 lub 3
+        const knownCommands = ['ls', 'cat', 'cd', 'edit', 'clear', 'help'];
+        let currentStage = 1; 
         let audioCtx;
         let isEditing = false;
-        
-        // Wirtualny System Plików
-        let virtualFiles = {
-            "readme.txt": "Adrian, wentylator serwera zagłusza sygnał audio (30% vol). Sprawdź diagnostykę wizualną w 'sys.conf'.",
-            "sys.conf": "ENABLE_LED_VISUAL=0"
-        };
+        let ledMorseEnabled = false; 
 
-        let ledMorseEnabled = false; // Czy dioda ma migać (zmienia edit sys.conf)
-
+        // HASŁO MORSE - Bilard
         const morseSequence = "....- ..---   -.... ----.   -.... -.-.   -.... .----   --... ..---   -.... ....-";
 
-        // --- OBSŁUGA AUDIO (Web Audio API) ---
+        // ROZBUDOWANY VIRTUAL FILE SYSTEM (VFS)
+        const virtualFS = {
+            "name": "~",
+            "type": "dir",
+            "files": {
+                "readme.txt": { type: "file", content: "Adrian, wentylator serwera zagłusza sygnał audio (30% vol). Sprawdź diagnostykę wizualną w 'sys.conf'." },
+                "sys.conf": { type: "file", content: "ENABLE_LED_VISUAL=0" },
+                "system_logs": { type: "dir", locked: false, pass: null, files: {
+                    "boot.log": { type: "file", content: "[OK] Kernel loaded\n[WARN] Audio subsystem unstable\n[OK] VFS mounted" },
+                    "auth.log": { type: "file", content: "Failed login attempts: 42\nLast connection: SSH (Port 22)" }
+                }},
+                "cache": { type: "dir", locked: false, pass: null, files: {
+                    "dump.bin": { type: "file", content: "01001000 01000001 01000011 01001011 01000101 01010010" }
+                }},
+                "stg_1": { type: "dir", locked: true, pass: "bilard", files: {
+                    "hint_1.txt": { type: "file", content: "Dobra robota. Jesteś w Stage 1." }
+                }},
+                "stg_2": { type: "dir", locked: true, pass: "haslo2", files: {
+                    "hint_2.txt": { type: "file", content: "Dobra robota. Jesteś w Stage 2." }
+                }},
+                "stg_3": { type: "dir", locked: true, pass: "haslo3", files: {
+                    "final.txt": { type: "file", content: "Ostatnia prosta..." }
+                }}
+            }
+        };
+
+        let currentDirObj = virtualFS;
+        let currentPath = "~";
+        let passwordPromptTarget = null; // Zmienna przechowująca folder, do którego próbujemy wejść
+
+        // --- AUDIO ---
         async function initAudio() {
             startBtn.innerText = "ŁADOWANIE JĄDRA... [OK]";
             startBtn.disabled = true;
-
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
             try {
-                // Ładowanie plików
-                const [startRes, loopRes, morseRes] = await Promise.all([
-                    fetch('start.wav'),
-                    fetch('loop.wav'),
-                    fetch('morse.wav')
-                ]);
-
+                const [startRes, loopRes, morseRes] = await Promise.all([ fetch('start.wav'), fetch('loop.wav'), fetch('morse.wav') ]);
                 const startBuffer = await audioCtx.decodeAudioData(await startRes.arrayBuffer());
                 const loopBuffer = await audioCtx.decodeAudioData(await loopRes.arrayBuffer());
                 const morseBuffer = await audioCtx.decodeAudioData(await morseRes.arrayBuffer());
 
-                // Konfiguracja źródeł
-                const startSource = audioCtx.createBufferSource();
-                startSource.buffer = startBuffer;
+                const startSource = audioCtx.createBufferSource(); startSource.buffer = startBuffer;
+                const loopSource = audioCtx.createBufferSource(); loopSource.buffer = loopBuffer; loopSource.loop = true;
+                const morseSource = audioCtx.createBufferSource(); morseSource.buffer = morseBuffer;
 
-                const loopSource = audioCtx.createBufferSource();
-                loopSource.buffer = loopBuffer;
-                loopSource.loop = true;
+                const morseGain = audioCtx.createGain(); morseGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
 
-                const morseSource = audioCtx.createBufferSource();
-                morseSource.buffer = morseBuffer;
-
-                // --- KLUCZOWE: GainNode do wyciszenia Morse'a ---
-                const morseGain = audioCtx.createGain();
-                morseGain.gain.setValueAtTime(0.3, audioCtx.currentTime); // Ustawienie na 30% głośności
-
-                // Podpięcie
                 startSource.connect(audioCtx.destination);
                 loopSource.connect(audioCtx.destination);
-                
-                morseSource.connect(morseGain); // Morse idzie przez wyciszenie
+                morseSource.connect(morseGain); 
                 morseGain.connect(audioCtx.destination);
 
-                // Odtwarzanie w czasie t0
                 const t0 = audioCtx.currentTime;
                 startSource.start(t0); 
                 loopSource.start(t0 + startBuffer.duration); 
-                morseSource.start(t0 + startBuffer.duration + 5); // Morse startuje 5s po pętli
+                morseSource.start(t0 + startBuffer.duration + 5); 
 
-                // Zmiana interfejsu
                 setTimeout(() => {
                     startScreen.style.display = 'none';
                     cmdInput.focus();
                     printIntroLogs();
                 }, 1000);
-
             } catch (e) {
                 alert("Błąd ładowania audio. Upewnij się, że start.wav, loop.wav i morse.wav są w repozytorium.");
                 startScreen.innerHTML = "<h2 style='color:#f00;'>BŁĄD KRYTYCZNY AUDIO</h2>";
             }
         }
-
         startBtn.addEventListener('click', initAudio);
 
-        // --- LOGIKA DIOD (LED) ---
+        // --- DIODY LED ---
         function updateLeds() {
             for (let stage in leds) {
                 let led = leds[stage];
-                led.className = 'led'; // Reset klas
-
-                if (stage < currentStage) {
-                    led.classList.add('green'); // Etapy zaliczone
-                } else if (stage == currentStage) {
-                    led.classList.add('orange'); // Etap obecny
-                    // Jeśli to Etap 1 i włączono wizualizację, zacznij migać Morse'a
-                    if (currentStage == 1 && ledMorseEnabled) {
-                        startMorseLedBlink();
-                    }
+                led.className = 'led'; 
+                if (stage < currentStage) led.classList.add('green');
+                else if (stage == currentStage) {
+                    led.classList.add('orange');
+                    if (currentStage == 1 && ledMorseEnabled) startMorseLedBlink();
                 }
-                // Etapy przyszłe pozostają czarne (wyłączone)
             }
         }
 
         function flashRedLeds() {
-            // Tymczasowo dodaj klasę flash do wszystkich diod
-            for (let stage in leds) {
-                leds[stage].className = 'led red-flash';
-            }
-            // Po 1 sekundzie (koniec animacji) przywróć poprawne kolory
+            for (let stage in leds) leds[stage].className = 'led red-flash';
             setTimeout(updateLeds, 1000);
         }
 
-        // --- VISUAL MORSE DIAGNOSTICS (Dioda) ---
         let morseTimeout;
-        const timeUnit = 150; // Długość kropki (1 jednostka) w ms
-
+        const timeUnit = 150; 
         function startMorseLedBlink() {
             if (currentStage !== 1 || !ledMorseEnabled) return;
-            
-            // Wyczyść ewentualne poprzednie miganie
             clearTimeout(morseTimeout);
             stopMorseLedEffect(); 
-
             let currentIndex = 0;
 
             function processNext() {
                 if (currentIndex >= morseSequence.length || currentStage !== 1 || !ledMorseEnabled) {
-                    // Koniec sekwencji lub zmiana etapu/wyłączenie configu - zapętl po przerwie
-                    if (currentStage == 1 && ledMorseEnabled) {
-                        morseTimeout = setTimeout(startMorseLedBlink, 7 * timeUnit); // Przerwa między wyrazami
-                    }
+                    if (currentStage == 1 && ledMorseEnabled) morseTimeout = setTimeout(startMorseLedBlink, 7 * timeUnit); 
                     return;
                 }
-
                 const char = morseSequence[currentIndex];
                 currentIndex++;
 
                 if (char === ".") {
-                    // Kropka: Dioda ON (1 jedn.), potem OFF (1 jedn.)
-                    triggerLedPulse(1 * timeUnit);
-                    morseTimeout = setTimeout(processNext, 2 * timeUnit); 
+                    triggerLedPulse(1 * timeUnit); morseTimeout = setTimeout(processNext, 2 * timeUnit); 
                 } else if (char === "-") {
-                    // Kreska: Dioda ON (3 jedn.), potem OFF (1 jedn.)
-                    triggerLedPulse(3 * timeUnit);
-                    morseTimeout = setTimeout(processNext, 4 * timeUnit);
+                    triggerLedPulse(3 * timeUnit); morseTimeout = setTimeout(processNext, 4 * timeUnit);
                 } else if (char === " ") {
-                    // Odstęp między literami: Cisza (3 jedn.) - ale 1 jedn. już mamy z poprzedniego processNext
                     morseTimeout = setTimeout(processNext, 2 * timeUnit);
                 }
-                // Potrójna spacja w morseSequence (-----) zadziała jako przerwa między literami automatycznie
             }
-
             processNext();
         }
 
         function triggerLedPulse(duration) {
             leds[1].style.animation = `morseBlink ${duration}ms linear`;
-            setTimeout(() => {
-                leds[1].style.animation = ''; // Reset animacji
-            }, duration);
+            setTimeout(() => { leds[1].style.animation = ''; }, duration);
         }
 
-        function stopMorseLedEffect() {
-            if (leds[1]) leds[1].style.animation = '';
-        }
+        function stopMorseLedEffect() { if (leds[1]) leds[1].style.animation = ''; }
 
-        // --- KONSOLE I TERMINAL LOGIC ---
+        // --- TERMINAL ---
         function updateCmdDisplay() {
-            realCmdDisplay.innerHTML = cmdInput.value.replace(/ /g, '&nbsp;');
+            if (passwordPromptTarget) {
+                realCmdDisplay.innerHTML = "*".repeat(cmdInput.value.length);
+            } else {
+                realCmdDisplay.innerHTML = cmdInput.value.replace(/ /g, '&nbsp;');
+            }
+        }
+
+        function updatePrompt() {
+            if (passwordPromptTarget) {
+                promptStr.innerText = `[LOCKED] Enter password for ${passwordPromptTarget.name}: `;
+            } else {
+                promptStr.innerText = `adrian@sys-node:${currentPath}#`;
+            }
         }
 
         function printLog(text, color = "#0f0", delay = 0) {
             setTimeout(() => {
                 const p = document.createElement('p');
                 p.style.color = color;
-                p.innerText = text;
+                p.innerHTML = text; // Ważne: HTML zamiast Text, by czytało &nbsp; i kolory
                 logsDiv.appendChild(p);
                 logsContainer.scrollTop = logsContainer.scrollHeight;
             }, delay);
         }
 
         function printIntroLogs() {
-            printLog("Inicjalizacja Węzła Diagnostycznego... [OK]", "#0f0", 100);
-            printLog("Ładowanie VFS (Virtual File System)... [OK]", "#0f0", 300);
-            printLog("==========================================", "#0f0", 500);
-            printLog("WITAJ ADRIAN W SYSTEMIE DIAGNOSTYCZNYM.", "#ff0", 700);
-            printLog("Zlokalizuj anomalie w kanale audio lub diagnostyce wizualnej.", "#0f0", 900);
-            printLog("Wpisz 'help', aby wyświetlić dostępne komendy.", "#aaa", 1100);
-            printLog("==========================================", "#0f0", 1300);
+            printLog("WITAJ ADRIAN W SYSTEMIE DIAGNOSTYCZNYM.", "#ff0", 100);
+            printLog("Zlokalizuj anomalie w kanale audio lub diagnostyce wizualnej.", "#0f0", 300);
+            printLog("Wpisz 'help', aby wyświetlić dostępne komendy.", "#aaa", 500);
         }
 
         function executeCommand(command) {
             const args = command.trim().split(/\s+/);
             const cmd = args[0].toLowerCase();
-            printLog("adrian@sys-node:~# " + command, "#ff00ff");
+            printLog(`adrian@sys-node:${currentPath}# ` + command, "#ff00ff");
 
             if (!knownCommands.includes(cmd) && cmd !== "") {
-                printLog(" ACCESS DENIED: Komenda nieznana lub brak uprawnień.", "#f00");
+                printLog("ACCESS DENIED: Komenda nieznana lub brak uprawnień.", "#f00");
                 return;
             }
 
             switch (cmd) {
                 case 'help':
-                    printLog("Dostępne komendy:");
-                    printLog("  ls              - listowanie plików w obecnym katalogu");
-                    printLog("  cat [plik]      - odczyt zawartości pliku tekstowego");
-                    printLog("  edit [plik]     - edycja pliku konfiguracyjnego");
-                    printLog("  unlock [klucz]  - autoryzacja klucza dla obecnego Etapu");
-                    printLog("  clear           - czyszczenie ekranu");
+                    printLog("ls      - listowanie plików i katalogów");
+                    printLog("cd      - zmiana katalogu (np. cd stg_1)");
+                    printLog("cat     - odczyt zawartości pliku (np. cat readme.txt)");
+                    printLog("edit    - edycja pliku konfiguracyjnego");
+                    printLog("clear   - czyszczenie ekranu");
                     break;
                 case 'ls':
-                    let fileList = Object.keys(virtualFiles).join("&nbsp;&nbsp;");
-                    printLog(fileList, "#0f0");
+                    let output = [];
+                    for (let name in currentDirObj.files) {
+                        let obj = currentDirObj.files[name];
+                        if (obj.type === 'dir') {
+                            let lockStr = obj.locked ? " <span style='color:#f00; font-size:11px;'>[LOCKED]</span>" : "";
+                            output.push(`<span style='color:#0f0; font-weight:bold;'>${name}/</span>${lockStr}`);
+                        } else {
+                            output.push(`<span style='color:#00eeff;'>${name}</span>`);
+                        }
+                    }
+                    printLog(output.join("&nbsp;&nbsp;&nbsp;&nbsp;"), "#fff");
+                    break;
+                case 'cd':
+                    let dest = args[1];
+                    if (!dest || dest === "~" || dest === "..") {
+                        currentDirObj = virtualFS; currentPath = "~"; updatePrompt();
+                    } else {
+                        if (dest.endsWith('/')) dest = dest.slice(0, -1);
+                        let target = currentDirObj.files[dest];
+                        if (target && target.type === 'dir') {
+                            if (target.locked) {
+                                passwordPromptTarget = { name: dest, obj: target };
+                                printLog(`Katalog '${dest}' jest szyfrowany. Wprowadź klucz dostępu:`, "#ffaa00");
+                                updatePrompt();
+                            } else {
+                                currentDirObj = target;
+                                currentPath = currentPath === "~" ? "~/" + dest : currentPath + "/" + dest;
+                                updatePrompt();
+                            }
+                        } else {
+                            printLog("cd: " + dest + ": Nie ma takiego katalogu", "#f00");
+                        }
+                    }
                     break;
                 case 'cat':
-                    if (virtualFiles[args[1]] !== undefined) {
-                        printLog(virtualFiles[args[1]], "#fff");
+                    let file = args[1];
+                    if (currentDirObj.files[file] && currentDirObj.files[file].type === 'file') {
+                        printLog(currentDirObj.files[file].content, "#fff");
                     } else {
-                        printLog("cat: " + (args[1] || "") + ": Brak takiego pliku.", "#f00");
+                        printLog("cat: " + (args[1] || "") + ": Brak pliku lub jest to katalog.", "#f00");
                     }
                     break;
                 case 'edit':
-                    if (args[1] === "sys.conf") {
+                    if (args[1] === "sys.conf" && currentDirObj === virtualFS) {
                         openEditor("sys.conf");
-                    } else if (virtualFiles[args[1]] !== undefined) {
-                        printLog("edit: Plik '" + args[1] + "' jest tylko do odczytu.", "#f00");
                     } else {
-                        printLog("edit: " + (args[1] || "") + ": Brak takiego pliku.", "#f00");
+                        printLog("edit: Brak pliku lub brak uprawnień.", "#f00");
                     }
-                    break;
-                case 'unlock':
-                    handleUnlock(args[1]);
                     break;
                 case 'clear':
                     logsDiv.innerHTML = "";
@@ -426,129 +395,100 @@
             }
         }
 
-        // --- OBSŁUGA ODBLOKOWYWANIA (Unlock Logic) ---
-        function handleUnlock(key) {
-            if (currentStage == 1) {
-                if ((key || "").toLowerCase() === "bilard") {
-                    printLog("[+] AUTORYZACJA ETAPU 1 POWIODŁA SIĘ.", "#0f0");
-                    printLog("Uruchamianie modułu: Kodowanie (Szyfr Cezara)...", "#0f0", 500);
-                    currentStage = 2;
-                    stopMorseLedEffect(); // Dioda przestaje migać Morse'em
-                    updateLeds(); // S1 -> Zielony, S2 -> Pomarańczowy
-                    
-                    // Logi wprowadzające do Etapu 2
-                    setTimeout(() => {
-                        printLog("Witaj w Etapie 2. Szyfr Cezara powiązany z Twoim Origin ID (Data Urodzenia)... Szukaj hexów.", "#0f0");
-                    }, 1000);
-                    
-                } else {
-                    printLog("[-] INVALID ACCESS KEY FOR STAGE 1.", "#f00");
-                    flashRedLeds();
-                }
-            } else {
-                printLog("Funkcja 'unlock' niedostępna dla tego etapu lub system już odblokowany.", "#aaa");
-            }
-        }
-
-        // --- OBSŁUGA EDYTORA (Nano/Edit Logic) ---
+        // --- EDYTOR ---
         function openEditor(filename) {
-            isEditing = true;
-            editorOverlay.style.display = 'flex';
-            editorTextarea.value = virtualFiles[filename];
-            editorStatus.innerText = "";
-            editorTextarea.focus();
-            cmdInput.disabled = true; // Zablokuj terminal
+            isEditing = true; editorOverlay.style.display = 'flex';
+            editorTextarea.value = currentDirObj.files[filename].content;
+            editorStatus.innerText = ""; editorTextarea.focus(); cmdInput.disabled = true;
         }
 
         function closeEditor() {
-            isEditing = false;
-            editorOverlay.style.display = 'none';
-            cmdInput.disabled = false; // Odblokuj terminal
-            cmdInput.focus();
+            isEditing = false; editorOverlay.style.display = 'none';
+            cmdInput.disabled = false; cmdInput.focus();
         }
 
         function saveFile() {
-            virtualFiles["sys.conf"] = editorTextarea.value;
+            currentDirObj.files["sys.conf"].content = editorTextarea.value;
             editorStatus.innerText = "[ZAPISANO]";
             
-            // Logika zmiany konfiguracji: sprawdź czy ENABLE_LED_VISUAL=1
-            if (virtualFiles["sys.conf"].includes("ENABLE_LED_VISUAL=1")) {
+            if (editorTextarea.value.includes("ENABLE_LED_VISUAL=1")) {
                 if (!ledMorseEnabled) {
                     ledMorseEnabled = true;
-                    if (currentStage == 1) {
-                        printLog("sys.conf: Diagnostyka wizualna LED włączona.", "#ff0", 100);
-                        updateLeds(); // Odśwież diody, żeby uruchomić miganie
-                    }
+                    if (currentStage == 1) { printLog("sys.conf: Diagnostyka wizualna LED włączona.", "#ff0", 100); updateLeds(); }
                 }
             } else {
-                if (ledMorseEnabled) {
-                    ledMorseEnabled = false;
-                    printLog("sys.conf: Diagnostyka wizualna LED wyłączona.", "#aaa", 100);
-                    stopMorseLedEffect();
-                    updateLeds();
-                }
+                if (ledMorseEnabled) { ledMorseEnabled = false; printLog("sys.conf: Diagnostyka LED wyłączona.", "#aaa", 100); stopMorseLedEffect(); updateLeds(); }
             }
-
             setTimeout(() => { editorStatus.innerText = ""; }, 1500);
         }
 
-        // Obsługa skrótów klawiszowych w edytorze
         editorTextarea.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.key === 's') {
-                e.preventDefault();
-                saveFile();
-            }
-            if (e.ctrlKey && e.key === 'x') {
-                e.preventDefault();
-                closeEditor();
-            }
+            if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveFile(); }
+            if (e.ctrlKey && e.key === 'x') { e.preventDefault(); closeEditor(); }
         });
 
-        // --- INPUT TERMINALA ---
+        // --- OBSŁUGA KLAWIATURY (Autouzupełnianie i Hasła) ---
         cmdInput.addEventListener('keydown', function(e) {
-            if (isEditing) return; // Blokada dla otwartego edytora
+            if (isEditing) return;
 
             if (e.key === 'Tab') {
-                e.preventDefault(); // Blokuje przeskakiwanie focusu w przeglądarce
+                e.preventDefault();
+                if (passwordPromptTarget) return; // Wyłącz TAB podczas wpisywania hasła
+
                 const currentVal = this.value;
                 const parts = currentVal.trimLeft().split(/\s+/);
 
-                // Autouzupełnianie komend (pierwsze słowo)
                 if (parts.length === 1 && parts[0].length > 0) {
                     const matches = knownCommands.filter(c => c.startsWith(parts[0].toLowerCase()));
-                    if (matches.length === 1) {
-                        this.value = matches[0] + " ";
-                    }
+                    if (matches.length === 1) this.value = matches[0] + " ";
                 } 
-                // Autouzupełnianie plików (drugie słowo)
                 else if (parts.length === 2) {
                     const cmd = parts[0];
                     const prefix = parts[1];
-                    const availableFiles = Object.keys(virtualFiles);
+                    const availableFiles = Object.keys(currentDirObj.files);
                     const matches = availableFiles.filter(f => f.startsWith(prefix));
 
                     if (matches.length === 1) {
-                        this.value = cmd + " " + matches[0];
+                        let suffix = currentDirObj.files[matches[0]].type === 'dir' ? '/' : '';
+                        this.value = cmd + " " + matches[0] + suffix;
                     }
                 }
                 updateCmdDisplay();
             }
 
             if (e.key === 'Enter') {
-                executeCommand(this.value);
+                if (passwordPromptTarget) {
+                    // Sprawdzanie hasła do folderu
+                    printLog(promptStr.innerText + "*".repeat(this.value.length), "#ffaa00");
+                    if (this.value.toLowerCase() === passwordPromptTarget.obj.pass) {
+                        printLog("[+] AUTORYZACJA POPRAWNA. ODCZYT KATALOGU...", "#0f0");
+                        passwordPromptTarget.obj.locked = false; // Trwałe odblokowanie
+                        currentDirObj = passwordPromptTarget.obj;
+                        currentPath = currentPath === "~" ? "~/" + passwordPromptTarget.name : currentPath + "/" + passwordPromptTarget.name;
+                        
+                        // Zmiana Stage po wejściu do folderu
+                        if (passwordPromptTarget.name === "stg_1" && currentStage === 1) {
+                            currentStage = 2; stopMorseLedEffect(); updateLeds();
+                            setTimeout(() => printLog("Odkryto pliki Stage 1. Szukaj wskazówek.", "#0f0"), 500);
+                        } else if (passwordPromptTarget.name === "stg_2" && currentStage === 2) {
+                            currentStage = 3; updateLeds();
+                            setTimeout(() => printLog("Odkryto pliki Stage 2. Szukaj wskazówek.", "#0f0"), 500);
+                        }
+                    } else {
+                        printLog("[-] ACCESS DENIED. NIEPRAWIDŁOWE HASŁO.", "#f00");
+                        flashRedLeds();
+                    }
+                    passwordPromptTarget = null;
+                    updatePrompt();
+                } else {
+                    executeCommand(this.value);
+                }
                 this.value = '';
                 updateCmdDisplay();
             }
         });
 
-        // Wymuszaj focus na terminalu, jeśli nie edytujemy
-        window.addEventListener('click', () => {
-            if (!isEditing && startScreen.style.display === 'none') {
-                cmdInput.focus();
-            }
-        });
-
-        // Zainicjuj diody na start (S1 Pomarańczowy)
+        window.addEventListener('click', () => { if (!isEditing && startScreen.style.display === 'none') cmdInput.focus(); });
         updateLeds();
 
     </script>
