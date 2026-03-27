@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>HackerDEX - Security Toolkit</title>
+    <link rel="icon" href="data:,">
+    <style>
+        body {
+            background-color: #0a0a0a;
+            background-image: radial-gradient(#113311 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Pasek zadań / Dock */
+        #dock {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .icon {
+            width: 80px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .icon:hover { transform: scale(1.1); }
+        .icon-img {
+            width: 50px;
+            height: 50px;
+            background: #002200;
+            border: 2px solid #0f0;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            margin: 0 auto 5px auto;
+            box-shadow: 0 0 10px rgba(0,255,0,0.2);
+        }
+        .icon-label { font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.7); padding: 2px; }
+
+        /* Pływające okienka */
+        .window {
+            position: absolute;
+            background: rgba(5, 10, 5, 0.95);
+            border: 1px solid #0f0;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+        .window-header {
+            background: #0f0;
+            color: #000;
+            padding: 5px 10px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+        }
+        .window-close { cursor: pointer; }
+        .window-close:hover { color: #f00; }
+        .window-content { padding: 15px; display: flex; flex-direction: column; flex-grow: 1; }
+
+        textarea {
+            background: #001100;
+            color: #0f0;
+            border: 1px solid #0f0;
+            font-family: 'Courier New', monospace;
+            padding: 10px;
+            resize: none;
+            outline: none;
+            user-select: text;
+        }
+        
+        /* Stylizacja Decrypto */
+        #decoder-window { top: 50px; left: 150px; width: 550px; height: 500px; display: none; }
+        .controls { display: flex; gap: 10px; margin: 10px 0; align-items: center; flex-wrap: wrap;}
+        select, input[type="text"], input[type="number"], button {
+            background: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px;
+            font-family: 'Courier New', monospace;
+            outline: none;
+        }
+        select, input[type="text"], input[type="number"] { cursor: text; }
+        button { cursor: pointer; font-weight: bold; flex-grow: 1; text-transform: uppercase; padding: 8px;}
+        button:hover { background: #0f0; color: #000; }
+        
+        /* Ukrywanie kontenerów opcji */
+        .option-container { display: none; align-items: center; gap: 5px; width: 100%; margin-top: 5px;}
+        .option-container.active { display: flex; }
+
+        /* Stylizacja Notatnika */
+        #notes-window { top: 100px; left: 750px; width: 350px; height: 400px; display: none; }
+        #notes-window .window-content { padding: 0; }
+        #notes-textarea { flex-grow: 1; border: none; height: 100%; }
+
+    </style>
+</head>
+<body>
+
+    <div id="dock">
+        <div class="icon" onclick="openWindow('decoder-window')">
+            <div class="icon-img">⚙️</div>
+            <div class="icon-label">Decrypto</div>
+        </div>
+        <div class="icon" onclick="openWindow('notes-window')">
+            <div class="icon-img">📝</div>
+            <div class="icon-label">Notatnik</div>
+        </div>
+    </div>
+
+    <!-- NARZĘDZIE DEKODUJĄCE (Decrypto) -->
+    <div id="decoder-window" class="window">
+        <div class="window-header" id="decoder-header">
+            <span>Decrypto v3.1 (Advanced Toolkit)</span>
+            <span class="window-close" onclick="closeWindow('decoder-window')">[X]</span>
+        </div>
+        <div class="window-content">
+            <label>INPUT DATA:</label>
+            <textarea id="dec-input" rows="5" placeholder="Wprowadź szyfrogram..."></textarea>
+            
+            <div class="controls">
+                <select id="dec-action" onchange="toggleOptions()" style="width: 100%; padding: 8px;">
+                    <option value="" disabled selected>-- WYBIERZ MODUŁ DESZYFRUJĄCY --</option>
+                    <option value="bin2hex">1. Binary -> Hex</option>
+                    <option value="hex2ascii">2. Hex -> ASCII (Text)</option>
+                    <option value="customKey">3. Szyfr z Kluczem (Podstawieniowy)</option>
+                    <option value="atbash">4. Szyfr Atbash (Odbicie lustrzane)</option>
+                    <option value="caesar">5. Szyfr Cezara (Przesunięcie)</option>
+                </select>
+                
+                <!-- Opcje dla Szyfru Cezara -->
+                <div id="opt-caesar" class="option-container">
+                    <label>Przesunięcie (Shift):</label>
+                    <input type="number" id="caesar-shift" value="-6" style="width: 60px;">
+                    <span style="font-size: 11px; color: #aaa;">(Użyj minusa do odszyfrowania np. -6)</span>
+                </div>
+
+                <!-- Opcje dla Szyfru z Kluczem (Elżbieta itp.) -->
+                <div id="opt-customKey" class="option-container">
+                    <label>Klucz (np. ELZBIETA):</label>
+                    <input type="text" id="custom-key-input" placeholder="Wpisz klucz..." style="flex-grow: 1;">
+                </div>
+
+                <button onclick="executeDecode()" style="width: 100%; margin-top: 10px;">DEKODUJ / URUCHOM MODUŁ</button>
+            </div>
+
+            <label>OUTPUT DATA:</label>
+            <textarea id="dec-output" rows="5" readonly></textarea>
+        </div>
+    </div>
+
+    <!-- NOTATNIK -->
+    <div id="notes-window" class="window">
+        <div class="window-header" id="notes-header">
+            <span>Notatnik Systemowy</span>
+            <span class="window-close" onclick="closeWindow('notes-window')">[X]</span>
+        </div>
+        <div class="window-content">
+            <textarea id="notes-textarea" placeholder="Miejsce na notatki, szyfrogramy i klucze..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        // --- ZARZĄDZANIE OKNAMI (DRAG & DROP) ---
+        let highestZ = 10;
+
+        function openWindow(id) {
+            const win = document.getElementById(id);
+            win.style.display = 'flex';
+            bringToFront(win);
+        }
+
+        function closeWindow(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        function bringToFront(el) {
+            highestZ++;
+            el.style.zIndex = highestZ;
+        }
+
+        function makeDraggable(winId, headerId) {
+            const winEl = document.getElementById(winId);
+            const headerEl = document.getElementById(headerId);
+            let isDragging = false, offsetX, offsetY;
+            
+            headerEl.onmousedown = (e) => {
+                isDragging = true;
+                offsetX = e.clientX - winEl.offsetLeft;
+                offsetY = e.clientY - winEl.offsetTop;
+                bringToFront(winEl);
+            };
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    winEl.style.left = (e.clientX - offsetX) + 'px';
+                    winEl.style.top = (e.clientY - offsetY) + 'px';
+                }
+            });
+            document.addEventListener('mouseup', () => { isDragging = false; });
+            
+            winEl.onmousedown = () => bringToFront(winEl);
+        }
+
+        makeDraggable('decoder-window', 'decoder-header');
+        makeDraggable('notes-window', 'notes-header');
+
+        // --- LOGIKA DEKODERA ---
+        function toggleOptions() {
+            const action = document.getElementById('dec-action').value;
+            
+            // Ukryj wszystkie
+            document.querySelectorAll('.option-container').forEach(el => el.classList.remove('active'));
+            
+            // Pokaż odpowiedni kontener z opcjami
+            if (action === 'caesar') {
+                document.getElementById('opt-caesar').classList.add('active');
+            } else if (action === 'customKey') {
+                document.getElementById('opt-customKey').classList.add('active');
+            }
+        }
+
+        // Funkcja usuwająca polskie znaki z klucza
+        function removePolishChars(text) {
+            const plChars = {'ą':'a', 'ć':'c', 'ę':'e', 'ł':'l', 'ń':'n', 'ó':'o', 'ś':'s', 'ź':'z', 'ż':'z'};
+            return text.toLowerCase().replace(/[ąćęłńóśźż]/g, match => plChars[match]).toUpperCase();
+        }
+
+        function executeDecode() {
+            let input = document.getElementById('dec-input').value.trim();
+            const action = document.getElementById('dec-action').value;
+            const outputEl = document.getElementById('dec-output');
+            
+            if (!input) {
+                outputEl.value = "[BŁĄD] Brak danych wejściowych.";
+                return;
+            }
+
+            if (!action) {
+                outputEl.value = "[BŁĄD] Wybierz moduł deszyfrujący z listy.";
+                return;
+            }
+
+            try {
+                let result = "";
+                
+                switch (action) {
+                    // KROK 5: Binary na HEX (Odwrócenie Twojego Krok 5)
+                    case "bin2hex":
+                        // Usuwamy spacje z inputu binarnego dla bezpieczeństwa, ale jeśli są poprawne 8-bitowe bloki, dzielimy je.
+                        const binBlocks = input.match(/[01]{8}/g);
+                        if (!binBlocks) throw new Error("Format");
+                        result = binBlocks.map(bin => {
+                            let hex = parseInt(bin, 2).toString(16).toUpperCase();
+                            return hex.length === 1 ? "0" + hex : hex; // Padding do 2 znaków
+                        }).join('');
+                        break;
+
+                    // KROK 4: HEX na ASCII (Odwrócenie Twojego Krok 4)
+                    case "hex2ascii":
+                        input = input.replace(/\s+/g, ''); // Usuwamy spacje
+                        if (input.length % 2 !== 0) throw new Error("Format");
+                        for (let i = 0; i < input.length; i += 2) {
+                            result += String.fromCharCode(parseInt(input.substr(i, 2), 16));
+                        }
+                        break;
+
+                    // KROK 3: Szyfr z Kluczem (Odszyfrowywanie Elżbiety)
+                    case "customKey":
+                        let rawKey = document.getElementById('custom-key-input').value;
+                        if (!rawKey) {
+                            outputEl.value = "[BŁĄD] Moduł wymaga podania klucza głównego.";
+                            return;
+                        }
+                        
+                        // 1. Oczyść klucz (usuń polskie znaki, spacje, zamień na wielkie litery)
+                        let cleanKey = removePolishChars(rawKey).replace(/[^A-Z]/g, '');
+                        
+                        // 2. Usuń duplikaty liter z klucza
+                        let uniqueKey = "";
+                        for (let char of cleanKey) {
+                            if (!uniqueKey.includes(char)) uniqueKey += char;
+                        }
+
+                        // 3. Zbuduj resztę alfabetu szyfrowego
+                        let cipherAlphabet = uniqueKey;
+                        for (let i = 65; i <= 90; i++) {
+                            let char = String.fromCharCode(i);
+                            if (!cipherAlphabet.includes(char)) cipherAlphabet += char;
+                        }
+
+                        const standardAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+                        // 4. Odszyfrowywanie (zamiana liter z cipherAlphabet na standardAlphabet)
+                        input = input.toUpperCase();
+                        for (let char of input) {
+                            if (char.match(/[A-Z]/)) {
+                                let index = cipherAlphabet.indexOf(char);
+                                result += standardAlphabet[index];
+                            } else {
+                                result += char; // zostaw spacje itp.
+                            }
+                        }
+                        break;
+
+                    // KROK 2: Atbash (Odwrócenie Twojego Krok 2)
+                    // Atbash jest symetryczny, szyfrowanie i deszyfrowanie to ta sama operacja.
+                    case "atbash":
+                        input = input.toUpperCase();
+                        for (let char of input) {
+                            if (char.match(/[A-Z]/)) {
+                                let charCode = char.charCodeAt(0);
+                                // A(65) -> Z(90), B(66) -> Y(89), itd. Formuła: 155 - kod
+                                result += String.fromCharCode(155 - charCode);
+                            } else {
+                                result += char;
+                            }
+                        }
+                        break;
+
+                    // KROK 1: Cezar (Odwrócenie Twojego Krok 1)
+                    case "caesar":
+                        const shift = parseInt(document.getElementById('caesar-shift').value) || 0;
+                        result = input.split('').map(char => {
+                            if (char.match(/[a-z]/i)) {
+                                const code = char.charCodeAt(0);
+                                const isUpper = (code >= 65 && code <= 90);
+                                const base = isUpper ? 65 : 97;
+                                return String.fromCharCode(((code - base + shift) % 26 + 26) % 26 + base);
+                            }
+                            return char; 
+                        }).join('');
+                        break;
+                }
+                outputEl.value = result;
+
+            } catch (err) {
+                outputEl.value = "[BŁĄD DEKODOWANIA] Niewłaściwy format danych wejściowych dla wybranej operacji.";
+            }
+        }
+    </script>
+</body>
+</html>
