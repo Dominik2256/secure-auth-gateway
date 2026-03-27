@@ -106,6 +106,17 @@
         #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center;}
         #startBtn { background: transparent; border: 2px solid #0f0; color: #0f0; padding: 15px 30px; font-size: 20px; font-family: monospace; cursor: pointer; text-transform: uppercase; box-shadow: 0 0 10px #0f0;}
         #startBtn:hover { background: #0f0; color: #000; }
+
+        /* EKRAN BSOD */
+        #bsod-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #0000aa; color: #fff; font-family: 'Consolas', monospace;
+            z-index: 9999; display: none; flex-direction: column; padding: 50px; box-sizing: border-box;
+        }
+        #bsod-screen h1 { background: #fff; color: #0000aa; display: inline-block; padding: 2px 10px; margin-bottom: 20px; }
+        #bsod-screen p { margin: 10px 0; font-size: 18px; }
+        #bsod-link { position: absolute; bottom: 20px; right: 20px; color: #fff; text-decoration: none; font-size: 16px; opacity: 0.5;}
+        #bsod-link:hover { opacity: 1; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -132,6 +143,18 @@
             <span id="notes-window-close" class="window-close">[X]</span>
         </div>
         <textarea id="notes-textarea" spellcheck="false" placeholder="Wpisz przechwycone sekwencje..."></textarea>
+    </div>
+
+    <!-- EKRAN BSOD (Fake Stage 3) -->
+    <div id="bsod-screen">
+        <h1>A problem has been detected and Windows has been shut down to prevent damage to your computer.</h1>
+        <p>SYSTEM_THREAD_EXCEPTION_NOT_HANDLED</p>
+        <p>If this is the first time you've seen this Stop error screen, restart your computer. If this screen appears again, follow these steps:</p>
+        <p>Check to make sure any new hardware or software is properly installed. If this is a new installation, ask your hardware or software manufacturer for any Windows updates you might need.</p>
+        <br>
+        <p>Technical information:</p>
+        <p>*** STOP: 0x0000007E (0xFFFFFFFFC0000005, 0xFFFFF80002E55150, 0xFFFFF880009A8D48, 0xFFFFF880009A85A0)</p>
+        <a href="final_page.html" id="bsod-link">JK :P <br>Click to continue >>></a>
     </div>
 
     <div id="game-viewport">
@@ -245,7 +268,6 @@
         let currentPath = "~";
         let passwordPromptTarget = null;
 
-        // --- OBSŁUGA OKIENEK PŁYWAJĄCYCH (DRAG & DROP) ---
         const morseWindow = document.getElementById('morse-window');
         const morseContent = document.getElementById('morse-window-content');
         document.getElementById('morse-window-close').onclick = () => { morseWindow.style.display = 'none'; cmdInput.focus(); };
@@ -277,7 +299,6 @@
         makeDraggable(morseWindow, 'morse-window-header');
         makeDraggable(notesWindow, 'notes-window-header');
 
-        // --- AUDIO ---
         async function initAudio() {
             startBtn.innerText = "ŁADOWANIE JĄDRA... [OK]";
             startBtn.disabled = true;
@@ -327,7 +348,6 @@
         }
         startBtn.addEventListener('click', initAudio);
 
-        // --- DIODY LED ---
         function updateLeds() {
             for (let stage in leds) {
                 let led = leds[stage];
@@ -501,7 +521,6 @@
                     const hasB = args.includes("-b");
                     const hasP = args.includes("-p");
 
-                    // Zablokowanie nielegalnej kombinacji flag
                     if (hasB && hasP) {
                         printLog("BŁĄD KRYTYCZNY: Konflikt parametrów. Flagi -b i -p wykluczają się wzajemnie.", "#f00");
                         printLog("Operacja przerwana. Użyj tylko jednej flagi na raz.", "#aaa", 100);
@@ -630,7 +649,6 @@
             if (e.ctrlKey && e.key === 'x') { e.preventDefault(); closeEditor(); }
         });
 
-        // --- ZAAWANSOWANE AUTOUZUPEŁNIANIE (TAB) ---
         cmdInput.addEventListener('keydown', function(e) {
             if (isEditing) return;
 
@@ -643,14 +661,12 @@
                 const hasTrailingSpace = this.value.endsWith(' ');
 
                 if (parts.length === 1 && !hasTrailingSpace) {
-                    // Uzupełnianie komend
                     const matches = knownCommands.filter(c => c.startsWith(parts[0].toLowerCase()));
                     if (matches.length === 1) {
                         this.value = matches[0] + " ";
                     }
                 } 
                 else if (parts.length === 2 || (parts.length === 1 && hasTrailingSpace)) {
-                    // Uzupełnianie plików i folderów
                     const cmd = parts[0];
                     const prefix = parts.length === 2 ? parts[1] : "";
                     const availableFiles = Object.keys(currentDirObj.files);
@@ -660,7 +676,6 @@
                         let suffix = currentDirObj.files[matches[0]].type === 'dir' ? '/' : '';
                         this.value = cmd + " " + matches[0] + suffix;
                     } else if (matches.length > 1) {
-                        // Jeśli jest wiele opcji, znajdź wspólną część (Common Prefix)
                         let commonPrefix = prefix;
                         while (true) {
                             let nextChar = matches[0][commonPrefix.length];
@@ -672,7 +687,6 @@
                             }
                         }
 
-                        // Jeśli nic więcej nie da się uzupełnić, wypisz opcje do terminala
                         if (commonPrefix === prefix) {
                             printLog(`adrian@sys-node:${currentPath}# ` + this.value, "#ff00ff");
                             let outputList = matches.map(m => {
@@ -680,7 +694,6 @@
                             });
                             printLog(outputList.join("&nbsp;&nbsp;&nbsp;&nbsp;"), "#fff");
                         } else {
-                            // Uzupełnij do najdłuższej wspólnej części
                             this.value = cmd + " " + commonPrefix;
                         }
                     }
@@ -703,6 +716,30 @@
                         } else if (passwordPromptTarget.name === "stg_2" && currentStage === 2) {
                             currentStage = 3; updateLeds();
                             printLog("Uruchamianie modułu: Stage 3...", "#0f0", 500);
+                        } else if (passwordPromptTarget.name === "stg_3" && currentStage === 3) {
+                            // FAKE STAGE 3 - SYMULACJA AWARII
+                            cmdInput.disabled = true; // Zablokuj terminal
+                            printLog("Inicjalizacja pobierania...", "#0f0", 500);
+                            printLog("Rozpakowywanie paczek danych...", "#0f0", 1500);
+                            printLog("[WARN] Wykryto niezgodność sumy kontrolnej w paczce 0x4A.", "#ffaa00", 3000);
+                            printLog("[ERROR] Błąd zapisu do pamięci podręcznej: Segment Fault.", "#f00", 4500);
+                            printLog("[FATAL] Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)", "#f00", 6000);
+                            
+                            // Wywalenie mnóstwa krzaków dla efektu
+                            setTimeout(() => {
+                                for(let i=0; i<30; i++) {
+                                    printLog(Math.random().toString(36).substring(2, 15) + " 0x" + Math.floor(Math.random()*16777215).toString(16), "#f00", i*50);
+                                }
+                            }, 7000);
+
+                            // Pokaż BSOD po 9 sekundach
+                            setTimeout(() => {
+                                document.getElementById('game-viewport').style.display = 'none';
+                                document.getElementById('bsod-screen').style.display = 'flex';
+                                // Wycisz dźwięk
+                                if (morseGainNode) morseGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                                if (audioCtx) audioCtx.suspend();
+                            }, 9000);
                         }
                     } else {
                         printLog("[-] ACCESS DENIED. NIEPRAWIDŁOWE HASŁO.", "#f00");
