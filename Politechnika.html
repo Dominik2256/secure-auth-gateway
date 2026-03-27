@@ -699,10 +699,10 @@
                         
                         if (passwordPromptTarget.name === "stg_1" && currentStage === 1) {
                             currentStage = 2; stopMorseLedEffect(); updateLeds();
-                            printLog("Uruchamianie modułu: Kodowanie (Szyfr Binarny)...", "#0f0", 500);
+                            printLog("Uruchamianie modułu: Stage 2...", "#0f0", 500);
                         } else if (passwordPromptTarget.name === "stg_2" && currentStage === 2) {
                             currentStage = 3; updateLeds();
-                            printLog("Uruchamianie modułu: Kryptografia (Hex)...", "#0f0", 500);
+                            printLog("Uruchamianie modułu: Stage 3...", "#0f0", 500);
                         }
                     } else {
                         printLog("[-] ACCESS DENIED. NIEPRAWIDŁOWE HASŁO.", "#f00");
