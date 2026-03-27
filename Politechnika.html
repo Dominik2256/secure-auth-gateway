@@ -107,7 +107,7 @@
         #startBtn { background: transparent; border: 2px solid #0f0; color: #0f0; padding: 15px 30px; font-size: 20px; font-family: monospace; cursor: pointer; text-transform: uppercase; box-shadow: 0 0 10px #0f0;}
         #startBtn:hover { background: #0f0; color: #000; }
 
-        /* EKRAN BSOD */
+        /* EKRAN BSOD (Fake Stage 3) */
         #bsod-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: #0000aa; color: #fff; font-family: 'Consolas', monospace;
@@ -218,7 +218,7 @@
 
         const leds = { 1: document.getElementById('led-1'), 2: document.getElementById('led-2'), 3: document.getElementById('led-3') };
 
-        const knownCommands = ['ls', 'cat', 'cd', 'edit', 'clear', 'help', 'morse', 'notes'];
+        const knownCommands = ['ls', 'cat', 'cd', 'edit', 'clear', 'help', 'morse', 'notes', 'run'];
         let currentStage = 1; 
         let audioCtx;
         let isEditing = false;
@@ -250,16 +250,14 @@
                     "boot.log": { type: "file", content: "[OK] Kernel loaded\n[WARN] Audio subsystem unstable\n[OK] VFS mounted" }
                 }},
                 "stg_1": { type: "dir", locked: true, pass: "bilard", files: {
-                    "hint_1.txt": { type: "file", content: "Stage 1 Aktywny. Odnajdź i Odszyfruj hasło do stage 2." }
+                    "hint_1.txt": { type: "file", content: "Stage 1 Aktywny. Odnajdź i Odszyfruj hasło do stage 2.\n[!] Użyj narzędzia HackerDEX." }
                 }},
                 "cache": { type: "dir", locked: false, pass: null, files: {
                     "stg2_key.bin": { type: "file", content: "Zagadka Smoczego Szyfru\nNajpierw spójrz na prąd, co w smoczych żyłach płynie,\nGdy zero i jeden rządzi w tej krainie.\nW szesnaście części podziel te sygnały,\nBy pierwsze litery wreszcie się ukazały.\nGdy słowo wyjdzie – jeszcze nie do odczytania,\nBo Elżbieta Czołowa ma coś do dodania.\nJej imię to klucz, co znaki poprzestawia,\nW labiryncie liter porządek zaprawia.\nLecz nie ciesz się jeszcze, to tylko połowa,\nTeraz w lustrze musi odbić się mowa.\nCo było na końcu, na przód wędrować musi,\nNiech blask zwierciadła kłamstwo twe zdusi.\nA gdy już myślisz, żeś blisko jest celu,\nPosłuchaj o Pemku, co wypił zbyt wielu:\nKolega Pemek siedemsetkę wznosi,\nBo go Smocza Jama o ratunek prosi.\nTrzysta mililitrów Smokowi w pysk wlewa,\nBy gad nie ryczał i nie ział na drzewa.\nDwieście „swojskiej” dolał, by wyrównać stan,\nBo Pemek to hojny i rzetelny pan.\nIle pełnych „setek” w butelce teraz drzemie?\nTyle razy przesuń każde liter ramię,\nA smocza tajemnica wnet przed Tobą skłamie!\n\nOto twoje hasło:\n01000011 01010001 01011010 01001000 01010100 01000001 01001011 01000011" } 
                 }},
                 "stg_2": { type: "dir", locked: true, pass: "margonem", files: {
-                    "hint_2.txt": { type: "file", content: "Stage 2 Aktywny. Just Click!" } 
-                }},
-                "stg_3": { type: "dir", locked: true, pass: "final", files: {
-                    "Poczatek.txt": { type: "file", content: "TUTAJ BEDZIE OSTATNI ETAP A PO NIM POBIERZE SIE NA PC PLIK ZPI Z PORTABLE EXECUTABLE" }
+                    "hint_2.txt": { type: "file", content: "Stage 2 Aktywny. Zlokalizowano plik uruchamialny. Wpisz 'run stage_3.exe', aby kontynuować." },
+                    "stage_3.exe": { type: "exe", content: "BINARY_DATA_CORRUPTED" }
                 }}
             }
         };
@@ -459,6 +457,7 @@
                     printLog("ls      - listowanie plików i katalogów");
                     printLog("cd      - zmiana katalogu (np. cd stg_1)");
                     printLog("cat     - odczyt zawartości pliku (np. cat readme.txt)");
+                    printLog("run     - uruchamia plik wykonywalny (np. run stage_3.exe)");
                     printLog("edit    - edycja pliku konfiguracyjnego");
                     printLog("morse   - otwiera słownik (-b restartuje LED, -p restartuje tylko Audio)");
                     printLog("notes   - otwiera podręczny notatnik systemowy");
@@ -471,6 +470,8 @@
                         if (obj.type === 'dir') {
                             let lockStr = obj.locked ? " <span style='color:#f00; font-size:11px;'>[LOCKED]</span>" : "";
                             output.push(`<span style='color:#0f0; font-weight:bold;'>${name}/</span>${lockStr}`);
+                        } else if (obj.type === 'exe') {
+                            output.push(`<span style='color:#ff0000;'>${name}*</span>`);
                         } else {
                             output.push(`<span style='color:#00eeff;'>${name}</span>`);
                         }
@@ -503,8 +504,39 @@
                     let file = args[1];
                     if (currentDirObj.files[file] && currentDirObj.files[file].type === 'file') {
                         printLog(currentDirObj.files[file].content, "#fff");
+                    } else if (currentDirObj.files[file] && currentDirObj.files[file].type === 'exe') {
+                        printLog("cat: " + file + ": Plik binarny. Użyj komendy 'run'.", "#f00");
                     } else {
                         printLog("cat: " + (args[1] || "") + ": Brak pliku lub jest to katalog.", "#f00");
+                    }
+                    break;
+                case 'run':
+                    let execTarget = args[1];
+                    if (currentDirObj.files[execTarget] && currentDirObj.files[execTarget].type === 'exe') {
+                        if (execTarget === 'stage_3.exe') {
+                            // SYMULACJA AWARII STAGE 3
+                            cmdInput.disabled = true; 
+                            printLog("Inicjalizacja modułu: Stage 3...", "#0f0", 500);
+                            printLog("Rozpakowywanie paczek danych...", "#0f0", 1500);
+                            printLog("[WARN] Wykryto niezgodność sumy kontrolnej w paczce 0x4A.", "#ffaa00", 3000);
+                            printLog("[ERROR] Błąd zapisu do pamięci podręcznej: Segment Fault.", "#f00", 4500);
+                            printLog("[FATAL] Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)", "#f00", 6000);
+                            
+                            setTimeout(() => {
+                                for(let i=0; i<30; i++) {
+                                    printLog(Math.random().toString(36).substring(2, 15) + " 0x" + Math.floor(Math.random()*16777215).toString(16), "#f00", i*50);
+                                }
+                            }, 7000);
+
+                            setTimeout(() => {
+                                document.getElementById('game-viewport').style.display = 'none';
+                                document.getElementById('bsod-screen').style.display = 'flex';
+                                if (morseGainNode) morseGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                                if (audioCtx) audioCtx.suspend();
+                            }, 9000);
+                        }
+                    } else {
+                        printLog("run: " + (execTarget || "") + ": Brak pliku wykonywalnego.", "#f00");
                     }
                     break;
                 case 'edit':
@@ -690,7 +722,9 @@
                         if (commonPrefix === prefix) {
                             printLog(`adrian@sys-node:${currentPath}# ` + this.value, "#ff00ff");
                             let outputList = matches.map(m => {
-                                return currentDirObj.files[m].type === 'dir' ? `<span style='color:#0f0; font-weight:bold;'>${m}/</span>` : `<span style='color:#00eeff;'>${m}</span>`;
+                                if (currentDirObj.files[m].type === 'dir') return `<span style='color:#0f0; font-weight:bold;'>${m}/</span>`;
+                                if (currentDirObj.files[m].type === 'exe') return `<span style='color:#ff0000;'>${m}</span>`;
+                                return `<span style='color:#00eeff;'>${m}</span>`;
                             });
                             printLog(outputList.join("&nbsp;&nbsp;&nbsp;&nbsp;"), "#fff");
                         } else {
@@ -715,31 +749,7 @@
                             printLog("Uruchamianie modułu: Stage 2...", "#0f0", 500);
                         } else if (passwordPromptTarget.name === "stg_2" && currentStage === 2) {
                             currentStage = 3; updateLeds();
-                            printLog("Uruchamianie modułu: Stage 3...", "#0f0", 500);
-                        } else if (passwordPromptTarget.name === "stg_3" && currentStage === 3) {
-                            // FAKE STAGE 3 - SYMULACJA AWARII
-                            cmdInput.disabled = true; // Zablokuj terminal
-                            printLog("Inicjalizacja pobierania...", "#0f0", 500);
-                            printLog("Rozpakowywanie paczek danych...", "#0f0", 1500);
-                            printLog("[WARN] Wykryto niezgodność sumy kontrolnej w paczce 0x4A.", "#ffaa00", 3000);
-                            printLog("[ERROR] Błąd zapisu do pamięci podręcznej: Segment Fault.", "#f00", 4500);
-                            printLog("[FATAL] Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)", "#f00", 6000);
-                            
-                            // Wywalenie mnóstwa krzaków dla efektu
-                            setTimeout(() => {
-                                for(let i=0; i<30; i++) {
-                                    printLog(Math.random().toString(36).substring(2, 15) + " 0x" + Math.floor(Math.random()*16777215).toString(16), "#f00", i*50);
-                                }
-                            }, 7000);
-
-                            // Pokaż BSOD po 9 sekundach
-                            setTimeout(() => {
-                                document.getElementById('game-viewport').style.display = 'none';
-                                document.getElementById('bsod-screen').style.display = 'flex';
-                                // Wycisz dźwięk
-                                if (morseGainNode) morseGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-                                if (audioCtx) audioCtx.suspend();
-                            }, 9000);
+                            printLog("Odblokowano dostęp do plików wykonywalnych.", "#0f0", 500);
                         }
                     } else {
                         printLog("[-] ACCESS DENIED. NIEPRAWIDŁOWE HASŁO.", "#f00");
