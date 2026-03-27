@@ -149,9 +149,9 @@
                     <span style="font-size: 11px; color: #aaa;">(Użyj minusa do odszyfrowania np. -6)</span>
                 </div>
 
-                <!-- Opcje dla Szyfru z Kluczem (Elżbieta itp.) -->
+           
                 <div id="opt-customKey" class="option-container">
-                    <label>Klucz (np. ELZBIETA):</label>
+                    <label>Klucz:</label>
                     <input type="text" id="custom-key-input" placeholder="Wpisz klucz..." style="flex-grow: 1;">
                 </div>
 
@@ -258,9 +258,8 @@
                 let result = "";
                 
                 switch (action) {
-                    // KROK 5: Binary na HEX (Odwrócenie Twojego Krok 5)
+   
                     case "bin2hex":
-                        // Usuwamy spacje z inputu binarnego dla bezpieczeństwa, ale jeśli są poprawne 8-bitowe bloki, dzielimy je.
                         const binBlocks = input.match(/[01]{8}/g);
                         if (!binBlocks) throw new Error("Format");
                         result = binBlocks.map(bin => {
@@ -269,7 +268,6 @@
                         }).join('');
                         break;
 
-                    // KROK 4: HEX na ASCII (Odwrócenie Twojego Krok 4)
                     case "hex2ascii":
                         input = input.replace(/\s+/g, ''); // Usuwamy spacje
                         if (input.length % 2 !== 0) throw new Error("Format");
@@ -278,7 +276,6 @@
                         }
                         break;
 
-                    // KROK 3: Szyfr z Kluczem (Odszyfrowywanie Elżbiety)
                     case "customKey":
                         let rawKey = document.getElementById('custom-key-input').value;
                         if (!rawKey) {
@@ -286,16 +283,13 @@
                             return;
                         }
                         
-                        // 1. Oczyść klucz (usuń polskie znaki, spacje, zamień na wielkie litery)
                         let cleanKey = removePolishChars(rawKey).replace(/[^A-Z]/g, '');
                         
-                        // 2. Usuń duplikaty liter z klucza
                         let uniqueKey = "";
                         for (let char of cleanKey) {
                             if (!uniqueKey.includes(char)) uniqueKey += char;
                         }
 
-                        // 3. Zbuduj resztę alfabetu szyfrowego
                         let cipherAlphabet = uniqueKey;
                         for (let i = 65; i <= 90; i++) {
                             let char = String.fromCharCode(i);
@@ -304,7 +298,6 @@
 
                         const standardAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-                        // 4. Odszyfrowywanie (zamiana liter z cipherAlphabet na standardAlphabet)
                         input = input.toUpperCase();
                         for (let char of input) {
                             if (char.match(/[A-Z]/)) {
@@ -316,8 +309,6 @@
                         }
                         break;
 
-                    // KROK 2: Atbash (Odwrócenie Twojego Krok 2)
-                    // Atbash jest symetryczny, szyfrowanie i deszyfrowanie to ta sama operacja.
                     case "atbash":
                         input = input.toUpperCase();
                         for (let char of input) {
@@ -331,7 +322,6 @@
                         }
                         break;
 
-                    // KROK 1: Cezar (Odwrócenie Twojego Krok 1)
                     case "caesar":
                         const shift = parseInt(document.getElementById('caesar-shift').value) || 0;
                         result = input.split('').map(char => {
