@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Pulpit - System Zdalny</title>
+    <link rel="icon" href="data:,">
+    <style>
+        body {
+            background-color: #008080; /* Klasyczny Windows 95/98 Teal */
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            font-family: 'Tahoma', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Ekran startowy do włączenia audio */
+        #start-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; color: #0f0; z-index: 1000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        #startBtn {
+            background: transparent; border: 2px solid #0f0; color: #0f0;
+            padding: 15px 30px; font-size: 20px; font-family: monospace;
+            cursor: pointer; text-transform: uppercase; box-shadow: 0 0 10px #0f0;
+        }
+        #startBtn:hover { background: #0f0; color: #000; }
+
+        /* Pulpit */
+        #desktop {
+            width: 100%; height: 100%; position: relative; display: none;
+        }
+
+        .desktop-icon {
+            width: 80px; text-align: center; color: white;
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); cursor: pointer;
+        }
+        .desktop-icon img {
+            width: 64px; height: 64px; margin-bottom: 5px;
+        }
+        .icon-label {
+            background-color: #0000aa; padding: 2px 4px; font-size: 14px;
+            border: 1px dotted transparent;
+        }
+        .desktop-icon:focus .icon-label, .desktop-icon:active .icon-label {
+            border: 1px dotted white;
+        }
+
+        /* Okno Folderu */
+        #folder-window {
+            position: absolute; top: 30%; left: 35%; width: 400px; height: 300px;
+            background: #c0c0c0; border: 2px solid;
+            border-color: #fff #808080 #808080 #fff;
+            display: none; flex-direction: column; box-shadow: 5px 5px 10px rgba(0,0,0,0.5);
+        }
+        .window-titlebar {
+            background: #000080; color: white; padding: 3px 5px;
+            font-weight: bold; font-size: 14px; display: flex; justify-content: space-between;
+        }
+        .window-close {
+            background: #c0c0c0; color: black; border: 1px solid;
+            border-color: #fff #808080 #808080 #fff; padding: 0 5px; cursor: pointer;
+            font-weight: bold;
+        }
+        .window-close:active { border-color: #808080 #fff #fff #808080; }
+        
+        .window-content {
+            background: #fff; flex-grow: 1; margin: 2px; padding: 15px; border: 2px solid;
+            border-color: #808080 #fff #fff #808080; display: flex; gap: 20px;
+        }
+
+        .file-icon {
+            width: 70px; text-align: center; color: black; text-decoration: none; cursor: pointer;
+        }
+        .file-icon img { width: 48px; height: 48px; margin-bottom: 5px; }
+        .file-label { font-size: 12px; }
+        .file-icon:hover .file-label { background: #0000aa; color: white; }
+
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h2>REBOOTING SYSTEM...</h2>
+        <button id="startBtn">>> Włącz Dźwięk i Kontynuuj <<</button>
+    </div>
+
+    <div id="desktop">
+        <!-- Ikona na pulpicie otwierająca okno -->
+        <div class="desktop-icon" ondblclick="document.getElementById('folder-window').style.display='flex'">
+            <!-- Zwykła ikona folderu w base64, żeby nie bawić się w dodatkowe pliki obrazków -->
+            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='%23ffcc00' d='M4 14v40h56V20H28l-6-6H4z'/></svg>" alt="Folder">
+            <div class="icon-label">Prezent</div>
+        </div>
+
+        <!-- Okno folderu -->
+        <div id="folder-window">
+            <div class="window-titlebar">
+                <span>C:\Prezent</span>
+                <div class="window-close" onclick="document.getElementById('folder-window').style.display='none'">X</div>
+            </div>
+            <div class="window-content">
+                
+                <!-- Plik do pobrania -->
+                <!-- Pamiętaj, żeby atrybut href="/nazwa_twojego_pliku.zip" prowadził do prawdziwego archiwum -->
+                <!-- Używamy atrybutu download, żeby wymusić pobieranie -->
+                <a href="morse.wav" download="Prezent_Dla_Adriana.wav" class="file-icon">
+                    <!-- Ikona paczki (box) -->
+                    <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='%23a0522d' d='M8 20l24-12 24 12v28L32 60 8 48V20z'/><path fill='%23cd853f' d='M32 8v24L8 20zM32 32v28l24-12V20z'/><path fill='%238b4513' d='M32 32l24-12-24-12-24 12z'/></svg>" alt="File">
+                    <div class="file-label">Aplikacja.zip</div>
+                </a>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const startScreen = document.getElementById('start-screen');
+        const desktop = document.getElementById('desktop');
+
+        let audioCtx;
+
+        async function initAudio() {
+            startBtn.innerText = "ŁADOWANIE...";
+            startBtn.disabled = true;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            try {
+                // Pobieramy tylko start i loop, bez Morse'a, bo tu go nie potrzebujemy
+                const [startRes, loopRes] = await Promise.all([ fetch('start.wav'), fetch('loop.wav') ]);
+                const startBuffer = await audioCtx.decodeAudioData(await startRes.arrayBuffer());
+                const loopBuffer = await audioCtx.decodeAudioData(await loopRes.arrayBuffer());
+
+                const startSource = audioCtx.createBufferSource(); startSource.buffer = startBuffer;
+                const loopSource = audioCtx.createBufferSource(); loopSource.buffer = loopBuffer; loopSource.loop = true;
+
+                startSource.connect(audioCtx.destination);
+                loopSource.connect(audioCtx.destination);
+
+                const t0 = audioCtx.currentTime;
+                startSource.start(t0); 
+                loopSource.start(t0 + startBuffer.duration); 
+
+                setTimeout(() => {
+                    startScreen.style.display = 'none';
+                    desktop.style.display = 'block';
+                }, 1000);
+            } catch (e) {
+                alert("Błąd ładowania audio. Upewnij się, że pliki start.wav i loop.wav są w repozytorium.");
+                startScreen.innerHTML = "<h2 style='color:#f00;'>BŁĄD AUDIO</h2>";
+            }
+        }
+        
+        startBtn.addEventListener('click', initAudio);
+    </script>
+</body>
+</html>
