@@ -14,6 +14,7 @@
             justify-content: center;
             align-items: center;
             overflow: hidden; 
+            user-select: none; /* Zapobiega zaznaczaniu tekstu przy przeciąganiu okna */
         }
 
         #game-viewport {
@@ -23,6 +24,7 @@
             border: 2px solid #0f0;
             box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
             background: #000;
+            position: relative;
         }
 
         #left-panel {
@@ -45,7 +47,7 @@
 
         h2 { text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 5px #0f0; margin-bottom: 30px;}
 
-        #logs-container { flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; margin-bottom: 10px;}
+        #logs-container { flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; margin-bottom: 10px; user-select: text;}
         #logs { margin-top: auto; }
         p { margin: 2px 0; font-size: 14px; line-height: 1.4; word-wrap: break-word; white-space: pre-wrap; }
         
@@ -82,6 +84,22 @@
         #editor-textarea { flex-grow: 1; background: transparent; color: #0f0; font-family: 'Courier New', monospace; font-size: 14px; border: none; outline: none; resize: none;}
         #editor-footer { font-size: 12px; color: #aaa; margin-top: 5px; border-top: 1px dashed #0f0; padding-top: 5px;}
 
+        /* NOWE: Przeciągane okienko Morse'a */
+        #morse-window {
+            display: none; position: absolute; top: 50px; left: 50px; width: 350px;
+            background: rgba(0, 15, 0, 0.95); border: 1px solid #0f0; z-index: 200; box-shadow: 5px 5px 15px rgba(0,0,0,0.8);
+        }
+        #morse-window-header {
+            background: #0f0; color: #000; padding: 5px 10px; font-weight: bold; font-size: 14px;
+            cursor: move; display: flex; justify-content: space-between;
+        }
+        #morse-window-close { cursor: pointer; font-weight: bold; }
+        #morse-window-close:hover { color: #f00; }
+        #morse-window-content {
+            padding: 15px; color: #0f0; font-family: 'Courier New', monospace; font-size: 12px;
+            white-space: pre; overflow-y: auto; max-height: 400px; user-select: text;
+        }
+
         #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center;}
         #startBtn { background: transparent; border: 2px solid #0f0; color: #0f0; padding: 15px 30px; font-size: 20px; font-family: monospace; cursor: pointer; text-transform: uppercase; box-shadow: 0 0 10px #0f0;}
         #startBtn:hover { background: #0f0; color: #000; }
@@ -93,6 +111,15 @@
         <h2 style="color: #0f0;">SYSTEM DIAGNOSTYCZNY - ADRIAN</h2>
         <p style="color: #0f0; margin-bottom: 20px;">Wymagana autoryzacja dostępu do kanału audio.</p>
         <button id="startBtn">>> Zainicjuj Sekwencję Startową <<</button>
+    </div>
+
+    <!-- Pływające okienko Morse -->
+    <div id="morse-window">
+        <div id="morse-window-header">
+            <span>ITU_DICT.TXT - Słownik Systemowy</span>
+            <span id="morse-window-close">[X]</span>
+        </div>
+        <div id="morse-window-content"></div>
     </div>
 
     <div id="game-viewport">
@@ -156,12 +183,16 @@
 
         const leds = { 1: document.getElementById('led-1'), 2: document.getElementById('led-2'), 3: document.getElementById('led-3') };
 
-        const knownCommands = ['ls', 'cat', 'cd', 'edit', 'clear', 'help'];
+        const knownCommands = ['ls', 'cat', 'cd', 'edit', 'clear', 'help', 'morse'];
         let currentStage = 1; 
         let audioCtx;
         let isEditing = false;
         let ledMorseEnabled = false; 
         let morseGainNode = null; 
+
+        // Zmienne globalne do restartowania audio
+        let globalMorseBuffer = null;
+        let currentMorseSource = null;
 
         // HASŁO MORSE - Bilard (HEX: 42 69 6C 61 72 64)
         const morseSequence = "....- ..---   -.... ----.   -.... -.-.   -.... .----   --... ..---   -.... ....-";
@@ -203,6 +234,33 @@
         let currentPath = "~";
         let passwordPromptTarget = null;
 
+        // --- OBSŁUGA OKIENKA MORSE'A (DRAG & DROP) ---
+        const morseWindow = document.getElementById('morse-window');
+        const morseHeader = document.getElementById('morse-window-header');
+        const morseClose = document.getElementById('morse-window-close');
+        const morseContent = document.getElementById('morse-window-content');
+
+        morseClose.onclick = () => { morseWindow.style.display = 'none'; cmdInput.focus(); };
+
+        let isDragging = false;
+        let offsetX, offsetY;
+
+        morseHeader.onmousedown = (e) => {
+            isDragging = true;
+            offsetX = e.clientX - morseWindow.offsetLeft;
+            offsetY = e.clientY - morseWindow.offsetTop;
+        };
+
+        document.onmousemove = (e) => {
+            if (isDragging) {
+                morseWindow.style.left = (e.clientX - offsetX) + 'px';
+                morseWindow.style.top = (e.clientY - offsetY) + 'px';
+            }
+        };
+
+        document.onmouseup = () => { isDragging = false; };
+
+        // --- AUDIO ---
         async function initAudio() {
             startBtn.innerText = "ŁADOWANIE JĄDRA... [OK]";
             startBtn.disabled = true;
@@ -212,11 +270,14 @@
                 const [startRes, loopRes, morseRes] = await Promise.all([ fetch('start.wav'), fetch('loop.wav'), fetch('morse.wav') ]);
                 const startBuffer = await audioCtx.decodeAudioData(await startRes.arrayBuffer());
                 const loopBuffer = await audioCtx.decodeAudioData(await loopRes.arrayBuffer());
-                const morseBuffer = await audioCtx.decodeAudioData(await morseRes.arrayBuffer());
+                
+                // Zapisujemy buffer Morse'a globalnie, żeby móc go restartować
+                globalMorseBuffer = await audioCtx.decodeAudioData(await morseRes.arrayBuffer());
 
                 const startSource = audioCtx.createBufferSource(); startSource.buffer = startBuffer;
                 const loopSource = audioCtx.createBufferSource(); loopSource.buffer = loopBuffer; loopSource.loop = true;
-                const morseSource = audioCtx.createBufferSource(); morseSource.buffer = morseBuffer;
+                
+                currentMorseSource = audioCtx.createBufferSource(); currentMorseSource.buffer = globalMorseBuffer;
 
                 morseGainNode = audioCtx.createGain(); 
                 
@@ -227,13 +288,13 @@
 
                 startSource.connect(audioCtx.destination);
                 loopSource.connect(audioCtx.destination);
-                morseSource.connect(morseGainNode); 
+                currentMorseSource.connect(morseGainNode); 
                 morseGainNode.connect(audioCtx.destination);
 
                 const t0 = audioCtx.currentTime;
                 startSource.start(t0); 
                 loopSource.start(t0 + startBuffer.duration); 
-                morseSource.start(t0 + startBuffer.duration + 5); 
+                currentMorseSource.start(t0 + startBuffer.duration + 5); 
 
                 setTimeout(() => {
                     startScreen.style.display = 'none';
@@ -247,14 +308,14 @@
         }
         startBtn.addEventListener('click', initAudio);
 
-function updateLeds() {
+        // --- DIODY LED ---
+        function updateLeds() {
             for (let stage in leds) {
                 let led = leds[stage];
                 led.className = 'led'; 
                 if (stage < currentStage) {
                     led.classList.add('green');
                 } else if (stage == currentStage) {
-                    // Jeśli jesteśmy w Etapie 1 i Morse jest włączony, NIE dodajemy stałego pomarańczowego koloru
                     if (currentStage == 1 && ledMorseEnabled) {
                         startMorseLedBlink();
                     } else {
@@ -312,6 +373,7 @@ function updateLeds() {
             if (leds[1]) leds[1].classList.remove('active-blink'); 
         }
 
+        // --- TERMINAL ---
         function updateCmdDisplay() {
             if (passwordPromptTarget) {
                 realCmdDisplay.innerHTML = "*".repeat(cmdInput.value.length);
@@ -360,6 +422,7 @@ function updateLeds() {
                     printLog("cd      - zmiana katalogu (np. cd stg_1)");
                     printLog("cat     - odczyt zawartości pliku (np. cat readme.txt)");
                     printLog("edit    - edycja pliku konfiguracyjnego");
+                    printLog("morse   - otwiera słownik (flaga -b restartuje sekwencję)");
                     printLog("clear   - czyszczenie ekranu");
                     break;
                 case 'ls':
@@ -412,12 +475,51 @@ function updateLeds() {
                         printLog("edit: Brak pliku lub brak uprawnień.", "#f00");
                     }
                     break;
+                case 'morse':
+                    if (args[1] === "-b") {
+                        printLog("Zatrzymywanie aktualnej sekwencji... Restart za 3 sekundy.", "#ffaa00");
+                        
+                        // Zatrzymanie LED
+                        stopMorseLedEffect();
+                        if (currentStage == 1 && ledMorseEnabled) leds[1].classList.add('orange'); // Tymczasowo zapal na pomarańczowo
+                        
+                        // Zatrzymanie Audio
+                        if (currentMorseSource) {
+                            try { currentMorseSource.stop(); } catch(e) {}
+                        }
+
+                        // Restart po 3 sekundach
+                        setTimeout(() => {
+                            printLog("[+] Restart sekwencji Morse'a zsynchronizowany.", "#0f0");
+                            
+                            // Restart LED
+                            if (currentStage == 1 && ledMorseEnabled) {
+                                leds[1].classList.remove('orange');
+                                startMorseLedBlink(); // Od nowa ruszy od index 0
+                            }
+
+                            // Restart Audio
+                            if (audioCtx && globalMorseBuffer) {
+                                currentMorseSource = audioCtx.createBufferSource();
+                                currentMorseSource.buffer = globalMorseBuffer;
+                                currentMorseSource.connect(morseGainNode);
+                                currentMorseSource.start(audioCtx.currentTime);
+                            }
+                        }, 3000);
+
+                    } else {
+                        // Otwarcie okienka ze słownikiem
+                        morseContent.innerText = virtualFS.files["itu_dict.txt"].content;
+                        morseWindow.style.display = 'block';
+                    }
+                    break;
                 case 'clear':
                     logsDiv.innerHTML = "";
                     break;
             }
         }
 
+        // --- EDYTOR Z PARSOWANIEM CONFIGA ---
         function openEditor(filename) {
             isEditing = true; editorOverlay.style.display = 'flex';
             editorTextarea.value = currentDirObj.files[filename].content;
@@ -483,6 +585,7 @@ function updateLeds() {
             if (e.ctrlKey && e.key === 'x') { e.preventDefault(); closeEditor(); }
         });
 
+        // --- OBSŁUGA KLAWIATURY (Autouzupełnianie i Hasła) ---
         cmdInput.addEventListener('keydown', function(e) {
             if (isEditing) return;
 
@@ -541,7 +644,13 @@ function updateLeds() {
             }
         });
 
-        window.addEventListener('click', () => { if (!isEditing && startScreen.style.display === 'none') cmdInput.focus(); });
+        window.addEventListener('click', (e) => { 
+            // Nie wymuszaj focusu, jeśli kliknięto w przeciągane okno
+            if (!isEditing && startScreen.style.display === 'none' && !morseWindow.contains(e.target)) {
+                cmdInput.focus(); 
+            }
+        });
+        
         updateLeds();
 
     </script>
