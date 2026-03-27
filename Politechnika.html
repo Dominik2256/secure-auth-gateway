@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>SECURE NODE - TECHNICAL DIAGNOSTICS</title>
-    <!-- Blokada błędu 404 dla favicon.ico -->
     <link rel="icon" href="data:,">
     <style>
         body { 
@@ -86,20 +85,23 @@
         #editor-textarea { flex-grow: 1; background: transparent; color: #0f0; font-family: 'Courier New', monospace; font-size: 14px; border: none; outline: none; resize: none;}
         #editor-footer { font-size: 12px; color: #aaa; margin-top: 5px; border-top: 1px dashed #0f0; padding-top: 5px;}
 
-        #morse-window {
-            display: none; position: absolute; top: 50px; left: 50px; width: 350px;
-            background: rgba(0, 15, 0, 0.95); border: 1px solid #0f0; z-index: 200; box-shadow: 5px 5px 15px rgba(0,0,0,0.8);
+        /* Okienka pływające (Morse i Notatnik) */
+        .floating-window {
+            display: none; position: absolute; background: rgba(0, 15, 0, 0.95); 
+            border: 1px solid #0f0; z-index: 200; box-shadow: 5px 5px 15px rgba(0,0,0,0.8);
         }
-        #morse-window-header {
+        .window-header {
             background: #0f0; color: #000; padding: 5px 10px; font-weight: bold; font-size: 14px;
             cursor: move; display: flex; justify-content: space-between;
         }
-        #morse-window-close { cursor: pointer; font-weight: bold; }
-        #morse-window-close:hover { color: #f00; }
-        #morse-window-content {
-            padding: 15px; color: #0f0; font-family: 'Courier New', monospace; font-size: 12px;
-            white-space: pre; overflow-y: auto; max-height: 400px; user-select: text;
-        }
+        .window-close { cursor: pointer; font-weight: bold; }
+        .window-close:hover { color: #f00; }
+        
+        #morse-window { top: 50px; left: 50px; width: 350px; }
+        #morse-window-content { padding: 15px; color: #0f0; font-family: 'Courier New', monospace; font-size: 12px; white-space: pre; overflow-y: auto; max-height: 400px; user-select: text; }
+
+        #notes-window { top: 100px; left: 450px; width: 300px; height: 250px; display: none; flex-direction: column; }
+        #notes-textarea { flex-grow: 1; background: transparent; color: #0f0; border: none; padding: 10px; outline: none; resize: none; font-family: 'Courier New', monospace; font-size: 14px; user-select: text; }
 
         #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center;}
         #startBtn { background: transparent; border: 2px solid #0f0; color: #0f0; padding: 15px 30px; font-size: 20px; font-family: monospace; cursor: pointer; text-transform: uppercase; box-shadow: 0 0 10px #0f0;}
@@ -109,17 +111,27 @@
 <body>
 
     <div id="start-screen">
-        <h2 style="color: #0f0;">SYSTEM DIAGNOSTYCZNY - ADRIAN</h2>
+        <h2 style="color: #0f0;">SYSTEM DIAGNOSTYCZNY</h2>
         <p style="color: #0f0; margin-bottom: 20px;">Wymagana autoryzacja dostępu do kanału audio.</p>
         <button id="startBtn">>> Zainicjuj Sekwencję Startową <<</button>
     </div>
 
-    <div id="morse-window">
-        <div id="morse-window-header">
-            <span>ITU_DICT.TXT - Słownik Systemowy</span>
-            <span id="morse-window-close">[X]</span>
+    <!-- Pływające okienko Morse -->
+    <div id="morse-window" class="floating-window">
+        <div id="morse-window-header" class="window-header">
+            <span>ITU_DICT.TXT - Słownik</span>
+            <span id="morse-window-close" class="window-close">[X]</span>
         </div>
         <div id="morse-window-content"></div>
+    </div>
+
+    <!-- Pływające okienko Notatnika -->
+    <div id="notes-window" class="floating-window">
+        <div id="notes-window-header" class="window-header">
+            <span>NOTATNIK SYSTEMOWY</span>
+            <span id="notes-window-close" class="window-close">[X]</span>
+        </div>
+        <textarea id="notes-textarea" spellcheck="false" placeholder="Wpisz przechwycone sekwencje..."></textarea>
     </div>
 
     <div id="game-viewport">
@@ -154,17 +166,17 @@
             
             <div class="led-container">
                 <div class="led orange" id="led-1"></div>
-                <div class="led-label">Stage 1: Cryptography</div>
+                <div class="led-label">Stage 1</div>
             </div>
             
             <div class="led-container">
                 <div class="led" id="led-2"></div>
-                <div class="led-label">Stage 2: Encoded</div>
+                <div class="led-label">Stage 2</div>
             </div>
             
             <div class="led-container">
                 <div class="led" id="led-3"></div>
-                <div class="led-label">Stage 3: Network</div>
+                <div class="led-label">Stage 3</div>
             </div>
         </div>
     </div>
@@ -183,12 +195,12 @@
 
         const leds = { 1: document.getElementById('led-1'), 2: document.getElementById('led-2'), 3: document.getElementById('led-3') };
 
-        const knownCommands = ['ls', 'cat', 'cd', 'edit', 'clear', 'help', 'morse'];
+        const knownCommands = ['ls', 'cat', 'cd', 'edit', 'clear', 'help', 'morse', 'notes'];
         let currentStage = 1; 
         let audioCtx;
         let isEditing = false;
         let ledMorseEnabled = false; 
-        let audioMorseEnabled = true; // Zmienna audio on/off
+        let audioMorseEnabled = true; 
         let morseGainNode = null; 
 
         let globalMorseBuffer = null;
@@ -233,31 +245,39 @@
         let currentPath = "~";
         let passwordPromptTarget = null;
 
+        // --- OBSŁUGA OKIENEK PŁYWAJĄCYCH (DRAG & DROP) ---
         const morseWindow = document.getElementById('morse-window');
-        const morseHeader = document.getElementById('morse-window-header');
-        const morseClose = document.getElementById('morse-window-close');
         const morseContent = document.getElementById('morse-window-content');
+        document.getElementById('morse-window-close').onclick = () => { morseWindow.style.display = 'none'; cmdInput.focus(); };
 
-        morseClose.onclick = () => { morseWindow.style.display = 'none'; cmdInput.focus(); };
+        const notesWindow = document.getElementById('notes-window');
+        document.getElementById('notes-window-close').onclick = () => { notesWindow.style.display = 'none'; cmdInput.focus(); };
 
-        let isDragging = false;
-        let offsetX, offsetY;
+        function makeDraggable(winEl, headerId) {
+            const headerEl = document.getElementById(headerId);
+            let isDragging = false, offsetX, offsetY;
+            
+            headerEl.onmousedown = (e) => {
+                isDragging = true;
+                offsetX = e.clientX - winEl.offsetLeft;
+                offsetY = e.clientY - winEl.offsetTop;
+                morseWindow.style.zIndex = 200;
+                notesWindow.style.zIndex = 200;
+                winEl.style.zIndex = 201;
+            };
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    winEl.style.left = (e.clientX - offsetX) + 'px';
+                    winEl.style.top = (e.clientY - offsetY) + 'px';
+                }
+            });
+            document.addEventListener('mouseup', () => { isDragging = false; });
+        }
 
-        morseHeader.onmousedown = (e) => {
-            isDragging = true;
-            offsetX = e.clientX - morseWindow.offsetLeft;
-            offsetY = e.clientY - morseWindow.offsetTop;
-        };
+        makeDraggable(morseWindow, 'morse-window-header');
+        makeDraggable(notesWindow, 'notes-window-header');
 
-        document.onmousemove = (e) => {
-            if (isDragging) {
-                morseWindow.style.left = (e.clientX - offsetX) + 'px';
-                morseWindow.style.top = (e.clientY - offsetY) + 'px';
-            }
-        };
-
-        document.onmouseup = () => { isDragging = false; };
-
+        // --- AUDIO ---
         async function initAudio() {
             startBtn.innerText = "ŁADOWANIE JĄDRA... [OK]";
             startBtn.disabled = true;
@@ -307,6 +327,7 @@
         }
         startBtn.addEventListener('click', initAudio);
 
+        // --- DIODY LED ---
         function updateLeds() {
             for (let stage in leds) {
                 let led = leds[stage];
@@ -419,7 +440,8 @@
                     printLog("cd      - zmiana katalogu (np. cd stg_1)");
                     printLog("cat     - odczyt zawartości pliku (np. cat readme.txt)");
                     printLog("edit    - edycja pliku konfiguracyjnego");
-                    printLog("morse   - otwiera słownik (flaga -b restartuje sekwencję)");
+                    printLog("morse   - otwiera słownik (-b restartuje LED, -p restartuje tylko Audio)");
+                    printLog("notes   - otwiera podręczny notatnik systemowy");
                     printLog("clear   - czyszczenie ekranu");
                     break;
                 case 'ls':
@@ -472,9 +494,19 @@
                         printLog("edit: Brak pliku lub brak uprawnień.", "#f00");
                     }
                     break;
+                case 'notes':
+                    notesWindow.style.display = 'flex';
+                    break;
                 case 'morse':
-                    if (args[1] === "-b") {
-                        printLog("Zatrzymywanie aktualnej sekwencji... Restart za 3 sekundy.", "#ffaa00");
+                    const hasB = args.includes("-b");
+                    const hasP = args.includes("-p");
+
+                    // Zablokowanie nielegalnej kombinacji flag
+                    if (hasB && hasP) {
+                        printLog("BŁĄD KRYTYCZNY: Konflikt parametrów. Flagi -b i -p wykluczają się wzajemnie.", "#f00");
+                        printLog("Operacja przerwana. Użyj tylko jednej flagi na raz.", "#aaa", 100);
+                    } else if (hasB) {
+                        printLog("Zatrzymywanie wszystkich sekwencji... Restart za 3 sekundy.", "#ffaa00");
                         
                         stopMorseLedEffect();
                         if (currentStage == 1 && ledMorseEnabled) leds[1].classList.add('orange'); 
@@ -484,7 +516,7 @@
                         }
 
                         setTimeout(() => {
-                            printLog("[+] Restart sekwencji Morse'a zsynchronizowany.", "#0f0");
+                            printLog("[+] Restart pełnej sekwencji Morse'a (Zsynchronizowano).", "#0f0");
                             
                             if (currentStage == 1 && ledMorseEnabled) {
                                 leds[1].classList.remove('orange');
@@ -499,6 +531,17 @@
                             }
                         }, 3000);
 
+                    } else if (hasP) {
+                        printLog("Wymuszanie natychmiastowego restartu strumienia audio...", "#0f0");
+                        if (currentMorseSource) {
+                            try { currentMorseSource.stop(); } catch(e) {}
+                        }
+                        if (audioCtx && globalMorseBuffer) {
+                            currentMorseSource = audioCtx.createBufferSource();
+                            currentMorseSource.buffer = globalMorseBuffer;
+                            currentMorseSource.connect(morseGainNode);
+                            currentMorseSource.start(audioCtx.currentTime);
+                        }
                     } else {
                         morseContent.innerText = virtualFS.files["itu_dict.txt"].content;
                         morseWindow.style.display = 'block';
@@ -587,6 +630,7 @@
             if (e.ctrlKey && e.key === 'x') { e.preventDefault(); closeEditor(); }
         });
 
+        // --- ZAAWANSOWANE AUTOUZUPEŁNIANIE (TAB) ---
         cmdInput.addEventListener('keydown', function(e) {
             if (isEditing) return;
 
@@ -594,22 +638,51 @@
                 e.preventDefault();
                 if (passwordPromptTarget) return; 
 
-                const currentVal = this.value;
-                const parts = currentVal.trimLeft().split(/\s+/);
+                const currentVal = this.value.trimStart();
+                const parts = currentVal.split(/\s+/);
+                const hasTrailingSpace = this.value.endsWith(' ');
 
-                if (parts.length === 1 && parts[0].length > 0) {
+                if (parts.length === 1 && !hasTrailingSpace) {
+                    // Uzupełnianie komend
                     const matches = knownCommands.filter(c => c.startsWith(parts[0].toLowerCase()));
-                    if (matches.length === 1) this.value = matches[0] + " ";
+                    if (matches.length === 1) {
+                        this.value = matches[0] + " ";
+                    }
                 } 
-                else if (parts.length === 2) {
+                else if (parts.length === 2 || (parts.length === 1 && hasTrailingSpace)) {
+                    // Uzupełnianie plików i folderów
                     const cmd = parts[0];
-                    const prefix = parts[1];
+                    const prefix = parts.length === 2 ? parts[1] : "";
                     const availableFiles = Object.keys(currentDirObj.files);
                     const matches = availableFiles.filter(f => f.startsWith(prefix));
 
                     if (matches.length === 1) {
                         let suffix = currentDirObj.files[matches[0]].type === 'dir' ? '/' : '';
                         this.value = cmd + " " + matches[0] + suffix;
+                    } else if (matches.length > 1) {
+                        // Jeśli jest wiele opcji, znajdź wspólną część (Common Prefix)
+                        let commonPrefix = prefix;
+                        while (true) {
+                            let nextChar = matches[0][commonPrefix.length];
+                            if (!nextChar) break;
+                            if (matches.every(m => m.startsWith(commonPrefix + nextChar))) {
+                                commonPrefix += nextChar;
+                            } else {
+                                break;
+                            }
+                        }
+
+                        // Jeśli nic więcej nie da się uzupełnić, wypisz opcje do terminala
+                        if (commonPrefix === prefix) {
+                            printLog(`adrian@sys-node:${currentPath}# ` + this.value, "#ff00ff");
+                            let outputList = matches.map(m => {
+                                return currentDirObj.files[m].type === 'dir' ? `<span style='color:#0f0; font-weight:bold;'>${m}/</span>` : `<span style='color:#00eeff;'>${m}</span>`;
+                            });
+                            printLog(outputList.join("&nbsp;&nbsp;&nbsp;&nbsp;"), "#fff");
+                        } else {
+                            // Uzupełnij do najdłuższej wspólnej części
+                            this.value = cmd + " " + commonPrefix;
+                        }
                     }
                 }
                 updateCmdDisplay();
@@ -646,7 +719,7 @@
         });
 
         window.addEventListener('click', (e) => { 
-            if (!isEditing && startScreen.style.display === 'none' && !morseWindow.contains(e.target)) {
+            if (!isEditing && startScreen.style.display === 'none' && !morseWindow.contains(e.target) && !notesWindow.contains(e.target)) {
                 cmdInput.focus(); 
             }
         });
