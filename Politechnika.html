@@ -47,7 +47,7 @@
 
         #logs-container { flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; margin-bottom: 10px;}
         #logs { margin-top: auto; }
-        p { margin: 2px 0; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
+        p { margin: 2px 0; font-size: 14px; line-height: 1.4; word-wrap: break-word; white-space: pre-wrap; }
         
         .terminal-prompt-mockup { display: flex; align-items: center; font-size: 14px; position: relative; border-top: 1px dashed #0f0; padding-top: 10px; }
         .mockup-prompt-char { color: #ff00ff; font-weight: bold; margin-right: 5px; } 
@@ -63,7 +63,7 @@
         .led {
             width: 40px; height: 40px; border-radius: 50%; background-color: #222; 
             margin-right: 20px; box-shadow: inset 0 0 10px #000;
-            transition: background-color 0.1s, box-shadow 0.1s; /* Szybsza reakcja na ON/OFF */
+            transition: background-color 0.1s, box-shadow 0.1s; 
         }
         .led-label { font-size: 16px; font-weight: bold; color: #aaa; text-transform: uppercase; }
 
@@ -72,7 +72,6 @@
         .led.red-flash { animation: redFlash 0.5s linear 2; } 
         @keyframes redFlash { 0%, 100% { background-color: #222; box-shadow: none; } 50% { background-color: #ff0000; box-shadow: 0 0 30px #ff0000; } }
 
-        /* Miganie sterowane przez JS, nie przez CSS animation dla precyzji */
         .led.active-blink { background-color: #ffaa00; box-shadow: 0 0 20px #ffaa00; }
 
         #editor-overlay {
@@ -91,7 +90,7 @@
 <body>
 
     <div id="start-screen">
-        <h2 style="color: #0f0;">SYSTEM DIAGNOSTYCZNY</h2>
+        <h2 style="color: #0f0;">SYSTEM DIAGNOSTYCZNY - ADRIAN</h2>
         <p style="color: #0f0; margin-bottom: 20px;">Wymagana autoryzacja dostępu do kanału audio.</p>
         <button id="startBtn">>> Zainicjuj Sekwencję Startową <<</button>
     </div>
@@ -128,17 +127,17 @@
             
             <div class="led-container">
                 <div class="led orange" id="led-1"></div>
-                <div class="led-label">Stage 1</div>
+                <div class="led-label">Stage 1: Cryptography</div>
             </div>
             
             <div class="led-container">
                 <div class="led" id="led-2"></div>
-                <div class="led-label">Stage 2</div>
+                <div class="led-label">Stage 2: Encoded</div>
             </div>
             
             <div class="led-container">
                 <div class="led" id="led-3"></div>
-                <div class="led-label">Stage 3</div>
+                <div class="led-label">Stage 3: Network</div>
             </div>
         </div>
     </div>
@@ -162,25 +161,26 @@
         let audioCtx;
         let isEditing = false;
         let ledMorseEnabled = false; 
+        let morseGainNode = null; 
 
         // HASŁO MORSE - Bilard (HEX: 42 69 6C 61 72 64)
         const morseSequence = "....- ..---   -.... ----.   -.... -.-.   -.... .----   --... ..---   -.... ....-";
 
-        // DOMYŚLNE CZASY MORSE'A (Konfigurowalne w sys.conf)
         let timings = {
             dot: 400,
             dash: 800,
-            gap: 400, // Odstęp między elementami znaku
+            gap: 400,
             letterGap: 1200,
-            wordGap: 2800 // 7 * dot (standard)
+            wordGap: 2800
         };
 
         const virtualFS = {
             "name": "~",
             "type": "dir",
             "files": {
-                "readme.txt": { type: "file", content: "Adrian, wentylator serwera zagłusza sygnał audio (30% vol). Sprawdź diagnostykę wizualną w 'sys.conf'. Zweryfikuj parametry czasowe." },
-                "sys.conf": { type: "file", content: "ENABLE_LED_VISUAL=0\nMORSE_DOT_MS=400\nMORSE_DASH_MS=800\nMORSE_LETTER_GAP_MS=1200" },
+                "readme.txt": { type: "file", content: "Adrian, wentylator serwera skutecznie zagłusza anomalie z kanału audio. Użyj edytora 'edit', aby zmodyfikować parametry głośności w pliku 'sys.conf', lub aktywuj diagnostykę wizualną LED." },
+                "sys.conf": { type: "file", content: "ENABLE_LED_VISUAL=0\nMORSE_AUDIO_VOL=2\nMORSE_DOT_MS=400\nMORSE_DASH_MS=800\nMORSE_LETTER_GAP_MS=1200" },
+                "itu_dict.txt": { type: "file", content: "=== INTERNATIONAL MORSE CODE (ITU) ===\nA .-      N -.      1 .----\nB -...    O ---     2 ..---\nC -.-.    P .--.    3 ...--\nD -..     Q --.-    4 ....-\nE .       R .-.     5 .....\nF ..-.    S ...     6 -....\nG --.     T -       7 --...\nH ....    U ..-     8 ---..\nI ..      V ...-    9 ----.\nJ .---    W .--     0 -----\nK -.-     X -..-\nL .-..    Y -.--\nM --      Z --.." },
                 "system_logs": { type: "dir", locked: false, pass: null, files: {
                     "boot.log": { type: "file", content: "[OK] Kernel loaded\n[WARN] Audio subsystem unstable\n[OK] VFS mounted" }
                 }},
@@ -188,10 +188,10 @@
                     "hint_1.txt": { type: "file", content: "Stage 1 skompletowany. Kolejne hasło ukryte w systemie binarnym. Szukaj w katalogu 'cache'." }
                 }},
                 "cache": { type: "dir", locked: false, pass: null, files: {
-                    "stg2_key.bin": { type: "file", content: "01010000 01000001 01010010 01010100 01011001" } // PARTI
+                    "stg2_key.bin": { type: "file", content: "01010000 01000001 01010010 01010100 01011001" } 
                 }},
                 "stg_2": { type: "dir", locked: true, pass: "party", files: {
-                    "hint_2.txt": { type: "file", content: "Dobra robota. Jesteś w Stage 2. Hasło do Stage 3 to Hex: 46 49 4E 41 4C" } // FINAL
+                    "hint_2.txt": { type: "file", content: "Dobra robota. Jesteś w Stage 2. Hasło do Stage 3 to Hex: 46 49 4E 41 4C" } 
                 }},
                 "stg_3": { type: "dir", locked: true, pass: "final", files: {
                     "final_wishes.txt": { type: "file", content: "GRATULACJE ADRIAN!\nUdało Ci się przejść wszystkie etapy.\nTo koniec demo. Prezent czeka w Skrypcie Python." }
@@ -203,7 +203,6 @@
         let currentPath = "~";
         let passwordPromptTarget = null;
 
-        // --- AUDIO ---
         async function initAudio() {
             startBtn.innerText = "ŁADOWANIE JĄDRA... [OK]";
             startBtn.disabled = true;
@@ -219,12 +218,17 @@
                 const loopSource = audioCtx.createBufferSource(); loopSource.buffer = loopBuffer; loopSource.loop = true;
                 const morseSource = audioCtx.createBufferSource(); morseSource.buffer = morseBuffer;
 
-                const morseGain = audioCtx.createGain(); morseGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                morseGainNode = audioCtx.createGain(); 
+                
+                const confContent = virtualFS.files["sys.conf"].content;
+                const volMatch = confContent.match(/MORSE_AUDIO_VOL=(\d+)/);
+                let startVol = volMatch ? parseInt(volMatch[1]) / 100 : 0.02;
+                morseGainNode.gain.setValueAtTime(startVol, audioCtx.currentTime);
 
                 startSource.connect(audioCtx.destination);
                 loopSource.connect(audioCtx.destination);
-                morseSource.connect(morseGain); 
-                morseGain.connect(audioCtx.destination);
+                morseSource.connect(morseGainNode); 
+                morseGainNode.connect(audioCtx.destination);
 
                 const t0 = audioCtx.currentTime;
                 startSource.start(t0); 
@@ -243,7 +247,6 @@
         }
         startBtn.addEventListener('click', initAudio);
 
-        // --- DIODY LED ---
         function updateLeds() {
             for (let stage in leds) {
                 let led = leds[stage];
@@ -287,7 +290,6 @@
                     triggerLedPulse(timings.dash); 
                     morseTimeout = setTimeout(processNext, timings.dash + timings.gap);
                 } else if (char === " ") {
-                    // Przerwa między literami. timings.gap już dodany w poprz. kroku, dodajemy resztę.
                     morseTimeout = setTimeout(processNext, timings.letterGap - timings.gap);
                 }
             }
@@ -305,7 +307,6 @@
             if (leds[1]) leds[1].classList.remove('active-blink'); 
         }
 
-        // --- TERMINAL ---
         function updateCmdDisplay() {
             if (passwordPromptTarget) {
                 realCmdDisplay.innerHTML = "*".repeat(cmdInput.value.length);
@@ -353,7 +354,7 @@
                     printLog("ls      - listowanie plików i katalogów");
                     printLog("cd      - zmiana katalogu (np. cd stg_1)");
                     printLog("cat     - odczyt zawartości pliku (np. cat readme.txt)");
-                    printLog("edit     - edycja pliku konfiguracyjnego");
+                    printLog("edit    - edycja pliku konfiguracyjnego");
                     printLog("clear   - czyszczenie ekranu");
                     break;
                 case 'ls':
@@ -412,7 +413,6 @@
             }
         }
 
-        // --- EDYTOR Z PARSOWANIEM CONFIGA ---
         function openEditor(filename) {
             isEditing = true; editorOverlay.style.display = 'flex';
             editorTextarea.value = currentDirObj.files[filename].content;
@@ -429,9 +429,7 @@
             currentDirObj.files["sys.conf"].content = content;
             editorStatus.innerText = "[ZAPISANO]";
             
-            // PARSOWANIE KONFIGURACJI
             try {
-                // 1. Włączenie/Wyłączenie diody
                 if (content.includes("ENABLE_LED_VISUAL=1")) {
                     if (!ledMorseEnabled) {
                         ledMorseEnabled = true;
@@ -441,7 +439,13 @@
                     if (ledMorseEnabled) { ledMorseEnabled = false; printLog("sys.conf: Diagnostyka LED wyłączona.", "#aaa", 100); stopMorseLedEffect(); updateLeds(); }
                 }
 
-                // 2. Parsowanie Czasów (Regex)
+                const volMatch = content.match(/MORSE_AUDIO_VOL=(\d+)/);
+                if (volMatch && morseGainNode) {
+                    let newVol = parseInt(volMatch[1]) / 100; 
+                    morseGainNode.gain.setValueAtTime(newVol, audioCtx.currentTime);
+                    printLog(`sys.conf: Głośność audio zmieniona na ${volMatch[1]}%.`, "#ff0", 150);
+                }
+
                 const dotMatch = content.match(/MORSE_DOT_MS=(\d+)/);
                 const dashMatch = content.match(/MORSE_DASH_MS=(\d+)/);
                 const letterGapMatch = content.match(/MORSE_LETTER_GAP_MS=(\d+)/);
@@ -452,12 +456,10 @@
                 if (letterGapMatch && timings.letterGap !== parseInt(letterGapMatch[1])) { timings.letterGap = parseInt(letterGapMatch[1]); changed = true; }
 
                 if (changed) {
-                    // Aktualizacja zależnych czasów
-                    timings.gap = timings.dot; // Standard: przerwa między elem = 1 kropka
+                    timings.gap = timings.dot; 
                     timings.wordGap = timings.dot * 7;
                     printLog(`sys.conf: Parametry czasowe Morse'a zaktualizowane. (Dot: ${timings.dot}ms, Dash: ${timings.dash}ms)`, "#ff0", 200);
                     
-                    // Jeśli dioda miga, zrestartuj ją z nowymi czasami
                     if (ledMorseEnabled && currentStage === 1) {
                         stopMorseLedEffect();
                         setTimeout(startMorseLedBlink, 500);
@@ -476,7 +478,6 @@
             if (e.ctrlKey && e.key === 'x') { e.preventDefault(); closeEditor(); }
         });
 
-        // --- OBSŁUGA KLAWIATURY (Autouzupełnianie i Hasła) ---
         cmdInput.addEventListener('keydown', function(e) {
             if (isEditing) return;
 
@@ -514,7 +515,6 @@
                         currentDirObj = passwordPromptTarget.obj;
                         currentPath = currentPath === "~" ? "~/" + passwordPromptTarget.name : currentPath + "/" + passwordPromptTarget.name;
                         
-                        // Zmiana Stage po wejściu do folderu
                         if (passwordPromptTarget.name === "stg_1" && currentStage === 1) {
                             currentStage = 2; stopMorseLedEffect(); updateLeds();
                             printLog("Uruchamianie modułu: Kodowanie (Szyfr Binarny)...", "#0f0", 500);
