@@ -247,14 +247,19 @@
         }
         startBtn.addEventListener('click', initAudio);
 
-        function updateLeds() {
+function updateLeds() {
             for (let stage in leds) {
                 let led = leds[stage];
                 led.className = 'led'; 
-                if (stage < currentStage) led.classList.add('green');
-                else if (stage == currentStage) {
-                    led.classList.add('orange');
-                    if (currentStage == 1 && ledMorseEnabled) startMorseLedBlink();
+                if (stage < currentStage) {
+                    led.classList.add('green');
+                } else if (stage == currentStage) {
+                    // Jeśli jesteśmy w Etapie 1 i Morse jest włączony, NIE dodajemy stałego pomarańczowego koloru
+                    if (currentStage == 1 && ledMorseEnabled) {
+                        startMorseLedBlink();
+                    } else {
+                        led.classList.add('orange');
+                    }
                 }
             }
         }
