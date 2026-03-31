@@ -135,18 +135,19 @@
             <div class="controls">
                 <select id="dec-action" onchange="toggleOptions()" style="width: 100%; padding: 8px;">
                     <option value="" disabled selected>-- WYBIERZ MODUŁ DESZYFRUJĄCY --</option>
-                    <option value="bin2hex">1. Binary -> Hex</option>
-                    <option value="hex2ascii">2. Hex -> ASCII (Text)</option>
-                    <option value="customKey">3. Szyfr z Kluczem (Podstawieniowy)</option>
-                    <option value="atbash">4. Szyfr Atbash (Odbicie lustrzane)</option>
-                    <option value="caesar">5. Szyfr Cezara (Przesunięcie)</option>
+                    <option value="caesar">Szyfr Cezara (Przesunięcie)</option>
+                    <option value="bin2hex">Binary -> Hex</option>
+                    <option value="customKey">Szyfr z Kluczem (Podstawieniowy)</option>
+                    <option value="hex2ascii">Hex -> ASCII (Text)</option>
+                    <option value="atbash">Szyfr Atbash (Odbicie lustrzane)</option>
+
                 </select>
                 
                 <!-- Opcje dla Szyfru Cezara -->
                 <div id="opt-caesar" class="option-container">
                     <label>Przesunięcie (Shift):</label>
                     <input type="number" id="caesar-shift" value="-6" style="width: 60px;">
-                    <span style="font-size: 11px; color: #aaa;">(Użyj minusa do odszyfrowania np. -6)</span>
+                    <span style="font-size: 11px; color: #aaa;">(Użyj minusa do odszyfrowania np. -2)</span>
                 </div>
 
            
